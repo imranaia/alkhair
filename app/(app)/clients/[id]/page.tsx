@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
-import { requireModule, getModulePermission } from "@/lib/auth/session";
+import { requireModule, getModulePermission, isAdmin } from "@/lib/auth/session";
 import { getClientById, listClientTransactions } from "@/lib/db/clients";
-import { getActiveLoanSummary } from "@/lib/db/loanAgreements";
+import { getActiveLoanSummary, listLoanAgreementsForClient } from "@/lib/db/loanAgreements";
 import { getClientLogin } from "@/lib/db/users";
 import { getLatestChecklist } from "@/lib/db/checklists";
 import { GlassPanel } from "@/components/layout/GlassPanel";
@@ -12,6 +12,7 @@ import { CheckCircle2, XCircle } from "lucide-react";
 import { ClientStatusControl } from "./ClientStatusControl";
 import { RecordMaturityDialog } from "./RecordMaturityDialog";
 import { LoanAgreementDialog } from "./LoanAgreementDialog";
+import { ApplyLoanDialog } from "./ApplyLoanDialog";
 import { ChecklistDialog } from "./ChecklistDialog";
 import { PortalPanel } from "./PortalPanel";
 
@@ -45,8 +46,10 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
   const transactions = await listClientTransactions(clientId);
   const loanSummary = await getActiveLoanSummary(clientId);
+  const loanHistory = await listLoanAgreementsForClient(clientId);
   const portalLogin = await getClientLogin(clientId);
   const checklist = await getLatestChecklist(clientId);
+  const admin = isAdmin(user.roleKey);
 
   return (
     <div className="space-y-4">
@@ -61,7 +64,16 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         </div>
         <div className="flex items-center gap-2">
           {canEdit && <ChecklistDialog clientId={client.id} />}
-          {canEdit && <LoanAgreementDialog clientId={client.id} />}
+          {canEdit && admin && <LoanAgreementDialog clientId={client.id} />}
+          {canEdit && !admin && (
+            <ApplyLoanDialog
+              clientId={client.id}
+              fullName={client.fullName}
+              clientCode={client.clientCode}
+              phone={client.phone}
+              businessType={client.businessType}
+            />
+          )}
           {canEdit && <RecordMaturityDialog clientId={client.id} branchId={client.branchId} />}
         </div>
       </div>
@@ -121,6 +133,46 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             <p className="text-xs text-muted-foreground">Remaining balance</p>
             <p className="text-lg font-semibold text-primary">{money(loanSummary.remainingBalance)}</p>
           </div>
+        </GlassPanel>
+      )}
+
+      {!loanSummary && loanHistory.length > 0 && (
+        <p className="text-sm text-muted-foreground">
+          No outstanding principal &mdash; every past agreement below is fully repaid. Eligible for a new principal.
+        </p>
+      )}
+
+      {loanHistory.length > 0 && (
+        <GlassPanel className="space-y-3 p-6">
+          <h2 className="text-sm font-semibold text-muted-foreground">Loan history</h2>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Start date</TableHead>
+                <TableHead className="text-right">Principal</TableHead>
+                <TableHead className="text-right">Profit</TableHead>
+                <TableHead>Tenure</TableHead>
+                <TableHead>Purpose</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loanHistory.map((a) => (
+                <TableRow key={a.id}>
+                  <TableCell>{a.startDate}</TableCell>
+                  <TableCell className="text-right">{money(a.principalAmount)}</TableCell>
+                  <TableCell className="text-right">{money(a.profitAmount)}</TableCell>
+                  <TableCell>{a.tenureWeeks} wks</TableCell>
+                  <TableCell className="max-w-xs truncate text-xs text-muted-foreground">{a.purpose || "—"}</TableCell>
+                  <TableCell>
+                    <Badge variant={a.status === "active" ? "default" : "secondary"} className="capitalize">
+                      {a.status}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </GlassPanel>
       )}
 

@@ -16,7 +16,7 @@ export default async function BranchesPage() {
       </div>
 
       {branches.length === 0 ? (
-        <div className="rounded-2xl border border-border p-6 text-center text-muted-foreground">No branches yet.</div>
+        <div className="glass-panel p-6 text-center text-muted-foreground">No branches yet.</div>
       ) : (
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
           {branches.map((b) => (

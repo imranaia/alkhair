@@ -88,7 +88,7 @@ export default async function LedgerPage({
       </GlassPanel>
 
       {entries.length === 0 ? (
-        <div data-tour="tour-ledger-entries" className="rounded-2xl border border-border p-6 text-center text-muted-foreground">
+        <div data-tour="tour-ledger-entries" className="glass-panel p-6 text-center text-muted-foreground">
           No ledger entries in this range.
         </div>
       ) : (

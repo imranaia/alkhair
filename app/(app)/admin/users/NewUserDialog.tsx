@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import { Plus, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -27,11 +27,11 @@ export function NewUserDialog({
   const [open, setOpen] = useState(false);
   const [successPassword, setSuccessPassword] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [state, formAction, pending] = useActionState(createUserAction, initialState);
-
-  useEffect(() => {
-    if (state.tempPassword) setSuccessPassword(state.tempPassword);
-  }, [state]);
+  const [state, formAction, pending] = useActionState(async (prev: UserFormState, formData: FormData) => {
+    const result = await createUserAction(prev, formData);
+    if (result.tempPassword) setSuccessPassword(result.tempPassword);
+    return result;
+  }, initialState);
 
   function handleClose(next: boolean) {
     // Once a password is showing, only the explicit "Done" button (which also
@@ -57,7 +57,7 @@ export function NewUserDialog({
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogTrigger asChild>
-        <Button size="sm" className="gap-1.5">
+        <Button size="sm" className="gap-1.5 bg-brand text-brand-foreground hover:bg-brand/90">
           <Plus className="size-4" />
           Add User
         </Button>
@@ -90,7 +90,7 @@ export function NewUserDialog({
                 {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
               </Button>
             </div>
-            <Button className="w-full" onClick={handleDone}>
+            <Button className="w-full bg-brand text-brand-foreground hover:bg-brand/90" onClick={handleDone}>
               Done
             </Button>
           </div>
@@ -146,7 +146,7 @@ export function NewUserDialog({
               </p>
             )}
             <DialogFooter>
-              <Button type="submit" disabled={pending} className="w-full">
+              <Button type="submit" disabled={pending} className="w-full bg-brand text-brand-foreground hover:bg-brand/90">
                 {pending ? "Creating…" : "Create user"}
               </Button>
             </DialogFooter>

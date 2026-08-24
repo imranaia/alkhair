@@ -6,8 +6,9 @@ import { requireModule } from "@/lib/auth/session";
 import { getClientById } from "@/lib/db/clients";
 import { getClientLogin, createClientLogin, resetUserPassword } from "@/lib/db/users";
 import { createNotice } from "@/lib/db/clientNotices";
-import { createLoanAgreement } from "@/lib/db/loanAgreements";
+import { createLoanAgreement, getActiveLoanSummary, OutstandingLoanError } from "@/lib/db/loanAgreements";
 import { createChecklist } from "@/lib/db/checklists";
+import { submitForApproval } from "@/lib/db/pendingChanges";
 import { logAction } from "@/lib/db/audit";
 
 export type PortalLoginState = { error: string | null; username?: string; tempPassword?: string };
@@ -121,15 +122,21 @@ export async function createLoanAgreementAction(_prevState: AgreementFormState, 
 
   const client = await assertClientInScope(parsed.data.clientId, user.branchId, user.roleKey);
 
-  const agreement = await createLoanAgreement({
-    clientId: client.id,
-    branchId: client.branchId,
-    principalAmount: parsed.data.principalAmount,
-    profitAmount: parsed.data.profitAmount,
-    tenureWeeks: parsed.data.tenureWeeks,
-    startDate: parsed.data.startDate,
-    createdBy: user.userId,
-  });
+  let agreement;
+  try {
+    agreement = await createLoanAgreement({
+      clientId: client.id,
+      branchId: client.branchId,
+      principalAmount: parsed.data.principalAmount,
+      profitAmount: parsed.data.profitAmount,
+      tenureWeeks: parsed.data.tenureWeeks,
+      startDate: parsed.data.startDate,
+      createdBy: user.userId,
+    });
+  } catch (err) {
+    if (err instanceof OutstandingLoanError) return { error: err.message };
+    throw err;
+  }
 
   await logAction({
     userId: user.userId,
@@ -231,6 +238,59 @@ export async function createChecklistAction(_prevState: ChecklistFormState, form
     action: "client.checklist_recorded",
     entityType: "client",
     entityId: client.id,
+  });
+
+  revalidatePath(`/clients/${client.id}`);
+  return { error: null };
+}
+
+const applyLoanSchema = z.object({
+  clientId: z.coerce.number().int().positive(),
+  amountRequested: z.coerce.number().positive(),
+  purpose: z.string().trim().min(1).max(500),
+  tenureWeeksRequested: z.coerce.number().int().positive().max(104).optional(),
+});
+
+export type ApplyLoanState = { error: string | null };
+
+// Non-admin path: submits a request for admin review instead of creating the
+// agreement directly (LoanAgreementDialog is the admin fast path for that).
+export async function applyForLoanAction(_prevState: ApplyLoanState, formData: FormData): Promise<ApplyLoanState> {
+  const user = await requireModule("clients", "edit");
+  const raw = Object.fromEntries(Array.from(formData.entries()).filter(([, v]) => v !== ""));
+  const parsed = applyLoanSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+
+  const client = await assertClientInScope(parsed.data.clientId, user.branchId, user.roleKey);
+
+  const active = await getActiveLoanSummary(client.id);
+  if (active) {
+    return {
+      error: `This client has an outstanding principal of ₦${active.remainingBalance.toLocaleString()} remaining on the principal started ${active.agreement.startDate}. A new principal cannot be applied for until it is fully repaid.`,
+    };
+  }
+
+  await submitForApproval({
+    entityType: "loan_agreement_application",
+    entityId: client.id,
+    branchId: client.branchId,
+    proposedChanges: {
+      amountRequested: parsed.data.amountRequested,
+      purpose: parsed.data.purpose,
+      tenureWeeksRequested: parsed.data.tenureWeeksRequested,
+    },
+    requestedBy: user.userId,
+  });
+
+  await logAction({
+    userId: user.userId,
+    branchId: client.branchId,
+    action: "client.loan_application_submitted",
+    entityType: "loan_agreement_application",
+    entityId: client.id,
+    after: { amountRequested: parsed.data.amountRequested, purpose: parsed.data.purpose },
   });
 
   revalidatePath(`/clients/${client.id}`);

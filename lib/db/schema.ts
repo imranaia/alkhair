@@ -225,6 +225,10 @@ export const loanAgreements = pgTable(
     installmentAmount: numeric("installment_amount", { precision: 14, scale: 2 }).notNull(),
     startDate: date("start_date").notNull(),
     status: varchar("status", { length: 20 }).notNull().default("active"), // active | completed | cancelled
+    // What the borrower told us they need it for — set when the agreement
+    // comes from an approved loan application; null for direct admin-created
+    // agreements that skipped the application step.
+    purpose: text("purpose"),
     createdBy: integer("created_by")
       .notNull()
       .references(() => users.id),

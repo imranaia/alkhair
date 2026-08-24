@@ -257,7 +257,7 @@ export function UserCard({
                 </p>
               )}
               <div className="flex gap-2">
-                <Button type="submit" size="sm" disabled={pending}>
+                <Button type="submit" size="sm" disabled={pending} className="bg-brand text-brand-foreground hover:bg-brand/90">
                   {pending ? "Saving…" : "Save changes"}
                 </Button>
                 <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(false)} disabled={pending}>

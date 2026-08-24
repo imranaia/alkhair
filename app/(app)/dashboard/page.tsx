@@ -52,7 +52,7 @@ function StatTile({
       <div
         className={
           "flex size-9 shrink-0 items-center justify-center rounded-lg " +
-          (emphasis === "negative" ? "bg-destructive/15 text-destructive" : "bg-primary/15 text-primary")
+          (emphasis === "negative" ? "bg-destructive/15 text-destructive" : "bg-brand/15 text-brand-foreground text-foreground")
         }
       >
         <Icon className="size-4.5" />
@@ -62,7 +62,7 @@ function StatTile({
         <p
           className={
             "break-words text-lg font-semibold " +
-            (emphasis === "positive" ? "text-primary" : emphasis === "negative" ? "text-destructive" : "text-foreground")
+            (emphasis === "positive" ? "text-brand" : emphasis === "negative" ? "text-destructive" : "text-foreground")
           }
         >
           {value}

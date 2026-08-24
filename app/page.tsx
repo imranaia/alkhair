@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import {
   Store,
@@ -32,6 +33,26 @@ import { Reveal } from "@/components/marketing/Reveal";
 
 // TODO: demo placeholder — swap for the real branch line once provided.
 const CONTACT_PHONE = "+234 800 000 0000";
+
+// Tasteful stock photography as a placeholder until real branch/client photos
+// are provided (all Unsplash License, free for commercial use).
+const PEOPLE = [
+  {
+    label: "Market Trader",
+    alt: "Market trader at a fruit stall — photo by Omotayo Tajudeen on Unsplash",
+    src: "https://images.unsplash.com/photo-1585540083814-ea6ee8af9e4f?q=80&w=800&auto=format&fit=crop",
+  },
+  {
+    label: "Tailor",
+    alt: "Tailor working at a sewing machine — photo by Ali Mkumbwa on Unsplash",
+    src: "https://images.unsplash.com/photo-1687422809069-0fa3546b8471?q=80&w=800&auto=format&fit=crop",
+  },
+  {
+    label: "Food Vendor",
+    alt: "Food vendor grilling suya at a street stall — photo by Ben Iwara on Unsplash",
+    src: "https://images.unsplash.com/photo-1765584829902-51939816637c?q=80&w=800&auto=format&fit=crop",
+  },
+];
 
 const TRADES = [
   { label: "Market Trader", icon: Store },
@@ -146,6 +167,29 @@ export default async function LandingPage() {
                   <t.icon className="size-4.5" />
                 </div>
                 <p className="text-sm font-medium">{t.label}</p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
+      {/* Built for people like you - photographic counterpoint to the icon-only bento above */}
+      <section className="space-y-5">
+        <h2 className="text-2xl font-semibold tracking-tight">Built for people like you</h2>
+        <div className="grid gap-4 sm:grid-cols-3">
+          {PEOPLE.map((p, i) => (
+            <Reveal key={p.label} index={i}>
+              <div className="group relative aspect-[4/5] overflow-hidden rounded-2xl">
+                <Image
+                  src={p.src}
+                  alt={p.alt}
+                  fill
+                  sizes="(min-width: 640px) 33vw, 100vw"
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent p-4 pt-10">
+                  <p className="text-sm font-medium text-white">{p.label}</p>
+                </div>
               </div>
             </Reveal>
           ))}

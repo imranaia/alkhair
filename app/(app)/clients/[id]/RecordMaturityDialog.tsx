@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,15 +16,14 @@ function today() {
 
 export function RecordMaturityDialog({ clientId, branchId }: { clientId: number; branchId: number }) {
   const [open, setOpen] = useState(false);
-  const [state, formAction, pending] = useActionState(recordLoanMaturityAction, initialState);
-
-  useEffect(() => {
-    if (state === initialState) return;
-    if (!pending && !state.error) {
+  const [state, formAction, pending] = useActionState(async (prev: MaturityFormState, formData: FormData) => {
+    const result = await recordLoanMaturityAction(prev, formData);
+    if (!result.error) {
       toast.success("Principal maturity recorded.");
       setOpen(false);
     }
-  }, [pending, state]);
+    return result;
+  }, initialState);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -75,7 +74,7 @@ export function RecordMaturityDialog({ clientId, branchId }: { clientId: number;
           )}
 
           <DialogFooter>
-            <Button type="submit" disabled={pending} className="w-full">
+            <Button type="submit" disabled={pending} className="w-full bg-brand text-brand-foreground hover:bg-brand/90">
               {pending ? "Saving…" : "Save"}
             </Button>
           </DialogFooter>

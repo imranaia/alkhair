@@ -28,7 +28,7 @@ export default async function UsersPage() {
       </div>
 
       {users.length === 0 ? (
-        <div data-tour="tour-admin-users" className="rounded-2xl border border-border p-6 text-center text-muted-foreground">
+        <div data-tour="tour-admin-users" className="glass-panel p-6 text-center text-muted-foreground">
           No users yet.
         </div>
       ) : (

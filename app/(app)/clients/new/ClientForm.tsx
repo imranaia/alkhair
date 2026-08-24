@@ -133,7 +133,7 @@ export function ClientForm({
         </p>
       )}
 
-      <Button type="submit" disabled={pending} className="w-full">
+      <Button type="submit" disabled={pending} className="w-full bg-brand text-brand-foreground hover:bg-brand/90">
         {pending ? "Creating…" : "Create client"}
       </Button>
     </form>

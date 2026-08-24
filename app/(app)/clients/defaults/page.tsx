@@ -54,7 +54,7 @@ export default async function ClientDefaultsPage({ searchParams }: { searchParam
       )}
 
       {rows.length === 0 ? (
-        <div className="rounded-2xl border border-border p-6 text-center text-muted-foreground">No defaults recorded.</div>
+        <div className="glass-panel p-6 text-center text-muted-foreground">No defaults recorded.</div>
       ) : (
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
           {rows.map((r) => (

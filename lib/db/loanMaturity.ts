@@ -1,7 +1,7 @@
 import "server-only";
 import { getDb } from "./client";
 import { loanMaturityEvents, clients, branches, users } from "./schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 
 export async function listLoanMaturityEvents(params: { branchId: number | null }) {
   const db = getDb();

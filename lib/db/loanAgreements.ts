@@ -5,6 +5,20 @@ import { eq, and, desc, sql } from "drizzle-orm";
 import { saveTransactionRow, getTransactionRow } from "./transactions";
 import { computeTotals, computeSchedule, nextDueInstallment } from "@/lib/services/loanAgreement";
 
+export class OutstandingLoanError extends Error {}
+
+// Throws if the client's most recent agreement still has an outstanding
+// balance — call before creating a new one, whether direct-created by an
+// admin or produced by approving a loan application.
+export async function assertNoOutstandingLoan(clientId: number) {
+  const active = await getActiveLoanSummary(clientId);
+  if (active) {
+    throw new OutstandingLoanError(
+      `This client has an outstanding principal of ₦${active.remainingBalance.toLocaleString()} remaining on the principal started ${active.agreement.startDate}. A new principal cannot be issued until it is fully repaid.`,
+    );
+  }
+}
+
 export async function createLoanAgreement(data: {
   clientId: number;
   branchId: number;
@@ -12,10 +26,21 @@ export async function createLoanAgreement(data: {
   profitAmount: number;
   tenureWeeks: number;
   startDate: string;
+  purpose?: string;
   createdBy: number;
 }) {
+  await assertNoOutstandingLoan(data.clientId);
+
   const db = getDb();
   const { totalRepayable, installmentAmount } = computeTotals(data);
+
+  // Any other row still flagged active for this client must, per the guard
+  // above, already be fully repaid — self-heal it here rather than leaving a
+  // stale duplicate "active" row behind (see getActiveLoanSummary).
+  await db
+    .update(loanAgreements)
+    .set({ status: "completed" })
+    .where(and(eq(loanAgreements.clientId, data.clientId), eq(loanAgreements.status, "active")));
 
   const [agreement] = await db
     .insert(loanAgreements)
@@ -28,6 +53,7 @@ export async function createLoanAgreement(data: {
       tenureWeeks: data.tenureWeeks,
       installmentAmount: installmentAmount.toFixed(2),
       startDate: data.startDate,
+      purpose: data.purpose,
       createdBy: data.createdBy,
     })
     .returning();
@@ -63,16 +89,19 @@ export async function listLoanAgreementsForClient(clientId: number) {
   return db.select().from(loanAgreements).where(eq(loanAgreements.clientId, clientId)).orderBy(desc(loanAgreements.startDate));
 }
 
-// The most recent active agreement's schedule, next-due installment, and
-// remaining balance (total repayable less lifetime principal recovery
-// recorded since the agreement started) — what both the client detail page
-// and the borrower's own portal dashboard need.
+// The client's single most recent agreement, self-healed against actual
+// recorded repayments rather than trusted from the stored `status` column —
+// nothing else in the app ever updates that column, so treating remaining
+// balance as the source of truth (and writing status back into sync when it
+// drifts) is what keeps "does this client have an outstanding loan" correct
+// without a cron job. Returns null when the client has no agreement at all,
+// or their most recent one is already fully repaid.
 export async function getActiveLoanSummary(clientId: number) {
   const db = getDb();
   const [agreement] = await db
     .select()
     .from(loanAgreements)
-    .where(and(eq(loanAgreements.clientId, clientId), eq(loanAgreements.status, "active")))
+    .where(eq(loanAgreements.clientId, clientId))
     .orderBy(desc(loanAgreements.startDate))
     .limit(1);
   if (!agreement) return null;
@@ -84,6 +113,14 @@ export async function getActiveLoanSummary(clientId: number) {
 
   const totalRepayable = Number(agreement.totalRepayable);
   const remainingBalance = Math.max(0, totalRepayable - Number(recovered?.total ?? 0));
+  const isActive = remainingBalance > 0;
+  const healedStatus = isActive ? "active" : "completed";
+  if (agreement.status !== healedStatus) {
+    await db.update(loanAgreements).set({ status: healedStatus }).where(eq(loanAgreements.id, agreement.id));
+  }
+
+  if (!isActive) return null;
+
   const schedule = computeSchedule({ ...agreement, totalRepayable });
   const nextDue = nextDueInstallment(schedule);
 

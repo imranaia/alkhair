@@ -83,7 +83,7 @@ export function PortalPanel({
         <form action={noticeFormAction} className="flex gap-2">
           <input type="hidden" name="clientId" value={clientId} />
           <Input id="notice-message" name="message" placeholder="Message for this client's portal" required />
-          <Button type="submit" size="sm" disabled={noticePending}>
+          <Button type="submit" size="sm" disabled={noticePending} className="bg-brand text-brand-foreground hover:bg-brand/90">
             {noticePending ? "Sending…" : "Send"}
           </Button>
         </form>

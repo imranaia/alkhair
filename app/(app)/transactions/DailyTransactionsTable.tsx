@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Search, CheckCircle2, Clock, AlertTriangle, CalendarClock } from "lucide-react";
 import { GlassPanel } from "@/components/layout/GlassPanel";
@@ -97,21 +97,20 @@ function ClientCard({
   preparedBy: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [state, formAction, pending] = useActionState(saveDailyTransactionsAction, initialState);
-  const filledFields = FIELDS.filter((f) => Number(row[f.key] ?? 0) > 0);
-  const offDay = selectedDay !== row.enrollmentDay;
-
-  useEffect(() => {
-    if (state === initialState) return;
-    if (state.error) toast.error(state.error);
-    else if (state.savedCount > 0) {
+  const [, formAction, pending] = useActionState(async (prev: DailyTransactionsState, formData: FormData) => {
+    const result = await saveDailyTransactionsAction(prev, formData);
+    if (result.error) toast.error(result.error);
+    else if (result.savedCount > 0) {
       toast.success(`Saved ${row.fullName}.`);
       setOpen(false);
-    } else if (state.submittedCount) {
+    } else if (result.submittedCount) {
       toast.success(`Submitted ${row.fullName}'s edit for admin approval.`);
       setOpen(false);
     }
-  }, [state, row.fullName]);
+    return result;
+  }, initialState);
+  const filledFields = FIELDS.filter((f) => Number(row[f.key] ?? 0) > 0);
+  const offDay = selectedDay !== row.enrollmentDay;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -234,7 +233,7 @@ function ClientCard({
             </div>
             {!readOnly && (
               <div className="flex justify-end">
-                <Button type="submit" size="sm" disabled={pending}>
+                <Button type="submit" size="sm" disabled={pending} className="bg-brand text-brand-foreground hover:bg-brand/90">
                   {pending ? "Saving…" : "Save"}
                 </Button>
               </div>

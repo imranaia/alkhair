@@ -33,7 +33,7 @@ export default async function BankReconciliationPage() {
       </div>
 
       {rows.length === 0 ? (
-        <div data-tour="tour-reconciliation" className="rounded-2xl border border-border p-6 text-center text-muted-foreground">
+        <div data-tour="tour-reconciliation" className="glass-panel p-6 text-center text-muted-foreground">
           No reconciliations recorded yet.
         </div>
       ) : (

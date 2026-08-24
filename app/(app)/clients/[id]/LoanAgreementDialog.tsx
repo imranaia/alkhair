@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,20 +16,22 @@ function today() {
 
 export function LoanAgreementDialog({ clientId }: { clientId: number }) {
   const [open, setOpen] = useState(false);
-  const [state, formAction, pending] = useActionState(createLoanAgreementAction, initialState);
-
-  useEffect(() => {
-    if (state === initialState) return;
-    if (!pending && !state.error) {
+  // Side effect lives in the action itself (runs once per successful submit)
+  // rather than in a useEffect reacting to state changes, which would fire on
+  // every render where the dependencies happen to match and cascade renders.
+  const [state, formAction, pending] = useActionState(async (prev: AgreementFormState, formData: FormData) => {
+    const result = await createLoanAgreementAction(prev, formData);
+    if (!result.error) {
       toast.success("Principal agreement created.");
       setOpen(false);
     }
-  }, [pending, state]);
+    return result;
+  }, initialState);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="secondary" size="sm">
+        <Button size="sm" className="bg-brand text-brand-foreground hover:bg-brand/90">
           New principal agreement
         </Button>
       </DialogTrigger>
@@ -67,7 +69,7 @@ export function LoanAgreementDialog({ clientId }: { clientId: number }) {
           )}
 
           <DialogFooter>
-            <Button type="submit" disabled={pending} className="w-full">
+            <Button type="submit" disabled={pending} className="w-full bg-brand text-brand-foreground hover:bg-brand/90">
               {pending ? "Creating…" : "Create"}
             </Button>
           </DialogFooter>

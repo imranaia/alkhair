@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -24,20 +24,19 @@ export function AddDefaultDialog({
   branchId: number;
 }) {
   const [open, setOpen] = useState(false);
-  const [state, formAction, pending] = useActionState(createDefaultAction, initialState);
-
-  useEffect(() => {
-    if (state === initialState) return;
-    if (!pending && !state.error) {
+  const [state, formAction, pending] = useActionState(async (prev: DefaultFormState, formData: FormData) => {
+    const result = await createDefaultAction(prev, formData);
+    if (!result.error) {
       toast.success("Default recorded.");
       setOpen(false);
     }
-  }, [pending, state]);
+    return result;
+  }, initialState);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="gap-1.5">
+        <Button size="sm" className="gap-1.5 bg-brand text-brand-foreground hover:bg-brand/90">
           <Plus className="size-4" />
           Record Default
         </Button>
@@ -87,7 +86,7 @@ export function AddDefaultDialog({
           )}
 
           <DialogFooter>
-            <Button type="submit" disabled={pending} className="w-full">
+            <Button type="submit" disabled={pending} className="w-full bg-brand text-brand-foreground hover:bg-brand/90">
               {pending ? "Saving…" : "Record default"}
             </Button>
           </DialogFooter>

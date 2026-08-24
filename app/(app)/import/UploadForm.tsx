@@ -117,7 +117,7 @@ export function UploadForm({
           </p>
         )}
 
-        <Button type="submit" disabled={pending} className="w-full">
+        <Button type="submit" disabled={pending} className="w-full bg-brand text-brand-foreground hover:bg-brand/90">
           {pending ? "Importing…" : `Import ${KIND_LABEL[kind].toLowerCase()}`}
         </Button>
       </form>

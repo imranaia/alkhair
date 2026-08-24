@@ -21,7 +21,7 @@ export function NewClientDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <Button size="sm" className="gap-1.5" onClick={() => setOpen(true)}>
+      <Button size="sm" className="gap-1.5 bg-brand text-brand-foreground hover:bg-brand/90" onClick={() => setOpen(true)}>
         <Plus className="size-4" />
         Add Client
       </Button>

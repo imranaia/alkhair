@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,15 +24,14 @@ function CheckRow({ name, label, defaultChecked }: { name: string; label: string
 export function ChecklistDialog({ clientId }: { clientId: number }) {
   const [open, setOpen] = useState(false);
   const [clientType, setClientType] = useState<"new" | "returning">("new");
-  const [state, formAction, pending] = useActionState(createChecklistAction, initialState);
-
-  useEffect(() => {
-    if (state === initialState) return;
-    if (!pending && !state.error) {
+  const [state, formAction, pending] = useActionState(async (prev: ChecklistFormState, formData: FormData) => {
+    const result = await createChecklistAction(prev, formData);
+    if (!result.error) {
       toast.success("Pre-disbursement checklist saved.");
       setOpen(false);
     }
-  }, [pending, state]);
+    return result;
+  }, initialState);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -165,7 +164,7 @@ export function ChecklistDialog({ clientId }: { clientId: number }) {
           )}
 
           <DialogFooter>
-            <Button type="submit" disabled={pending} className="w-full">
+            <Button type="submit" disabled={pending} className="w-full bg-brand text-brand-foreground hover:bg-brand/90">
               {pending ? "Saving…" : "Save checklist"}
             </Button>
           </DialogFooter>

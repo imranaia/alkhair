@@ -32,7 +32,7 @@ function StatTile({ label, value, emphasis }: { label: string; value: string; em
       <p
         className={
           "text-lg font-semibold " +
-          (emphasis === "positive" ? "text-primary" : emphasis === "negative" ? "text-destructive" : "text-foreground")
+          (emphasis === "positive" ? "text-brand" : emphasis === "negative" ? "text-destructive" : "text-foreground")
         }
       >
         {value}

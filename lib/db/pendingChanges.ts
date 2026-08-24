@@ -1,9 +1,9 @@
 import "server-only";
 import { getDb } from "./client";
 import { pendingChanges, clients, clientTransactions, users } from "./schema";
-import { eq, and, or, desc } from "drizzle-orm";
+import { eq, and, or, ne, desc } from "drizzle-orm";
 
-export type PendingEntityType = "client" | "client_transaction";
+export type PendingEntityType = "client" | "client_transaction" | "loan_agreement_application";
 
 export async function submitForApproval(params: {
   entityType: PendingEntityType;
@@ -56,8 +56,46 @@ export async function listPendingChanges(branchId: number | null) {
     )
     .where(
       branchId !== null
-        ? and(eq(pendingChanges.status, "pending"), eq(pendingChanges.branchId, branchId))
-        : eq(pendingChanges.status, "pending"),
+        ? and(
+            eq(pendingChanges.status, "pending"),
+            eq(pendingChanges.branchId, branchId),
+            ne(pendingChanges.entityType, "loan_agreement_application"),
+          )
+        : and(eq(pendingChanges.status, "pending"), ne(pendingChanges.entityType, "loan_agreement_application")),
+    )
+    .orderBy(desc(pendingChanges.requestedAt));
+}
+
+// Loan applications get their own dedicated review page rather than the
+// generic Approvals queue above — entityId here is the clientId the
+// application is for (a real, existing row; there's no loan_agreements row
+// yet at request time, so there's nothing else for it to reference).
+export async function listPendingLoanApplications(branchId: number | null) {
+  const db = getDb();
+  return db
+    .select({
+      id: pendingChanges.id,
+      clientId: pendingChanges.entityId,
+      branchId: pendingChanges.branchId,
+      proposedChanges: pendingChanges.proposedChanges,
+      requestedAt: pendingChanges.requestedAt,
+      requestedByName: users.fullName,
+      clientCode: clients.clientCode,
+      clientFullName: clients.fullName,
+      clientPhone: clients.phone,
+      clientBusinessType: clients.businessType,
+    })
+    .from(pendingChanges)
+    .innerJoin(users, eq(users.id, pendingChanges.requestedBy))
+    .innerJoin(clients, eq(clients.id, pendingChanges.entityId))
+    .where(
+      branchId !== null
+        ? and(
+            eq(pendingChanges.status, "pending"),
+            eq(pendingChanges.entityType, "loan_agreement_application"),
+            eq(pendingChanges.branchId, branchId),
+          )
+        : and(eq(pendingChanges.status, "pending"), eq(pendingChanges.entityType, "loan_agreement_application")),
     )
     .orderBy(desc(pendingChanges.requestedAt));
 }

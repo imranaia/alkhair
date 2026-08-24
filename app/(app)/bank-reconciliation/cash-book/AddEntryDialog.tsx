@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -18,20 +18,19 @@ function today() {
 
 export function AddEntryDialog({ branchId }: { branchId: number }) {
   const [open, setOpen] = useState(false);
-  const [state, formAction, pending] = useActionState(createCashBookEntryAction, initialState);
-
-  useEffect(() => {
-    if (state === initialState) return;
-    if (!pending && !state.error) {
+  const [state, formAction, pending] = useActionState(async (prev: CashBookFormState, formData: FormData) => {
+    const result = await createCashBookEntryAction(prev, formData);
+    if (!result.error) {
       toast.success("Entry recorded.");
       setOpen(false);
     }
-  }, [pending, state]);
+    return result;
+  }, initialState);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="gap-1.5">
+        <Button size="sm" className="gap-1.5 bg-brand text-brand-foreground hover:bg-brand/90">
           <Plus className="size-4" />
           Add Entry
         </Button>
@@ -92,7 +91,7 @@ export function AddEntryDialog({ branchId }: { branchId: number }) {
           )}
 
           <DialogFooter>
-            <Button type="submit" disabled={pending} className="w-full">
+            <Button type="submit" disabled={pending} className="w-full bg-brand text-brand-foreground hover:bg-brand/90">
               {pending ? "Saving…" : "Save entry"}
             </Button>
           </DialogFooter>

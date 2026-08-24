@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,19 +12,16 @@ const initialState: BranchFormState = { error: null };
 
 export function NewBranchDialog() {
   const [open, setOpen] = useState(false);
-  const [state, formAction, pending] = useActionState(createBranchAction, initialState);
-
-  useEffect(() => {
-    if (!pending && state === initialState) return;
-    if (!pending && !state.error && open) {
-      setOpen(false);
-    }
-  }, [pending, state, open]);
+  const [state, formAction, pending] = useActionState(async (prev: BranchFormState, formData: FormData) => {
+    const result = await createBranchAction(prev, formData);
+    if (!result.error) setOpen(false);
+    return result;
+  }, initialState);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="gap-1.5">
+        <Button size="sm" className="gap-1.5 bg-brand text-brand-foreground hover:bg-brand/90">
           <Plus className="size-4" />
           Add Branch
         </Button>
@@ -56,7 +53,7 @@ export function NewBranchDialog() {
             </p>
           )}
           <DialogFooter>
-            <Button type="submit" disabled={pending} className="w-full">
+            <Button type="submit" disabled={pending} className="w-full bg-brand text-brand-foreground hover:bg-brand/90">
               {pending ? "Creating…" : "Create branch"}
             </Button>
           </DialogFooter>
