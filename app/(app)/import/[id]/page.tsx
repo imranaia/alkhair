@@ -4,7 +4,7 @@ import { getImportBatch, getImportBatchRows, IMPORT_TYPE_LABELS } from "@/lib/db
 import { GlassPanel } from "@/components/layout/GlassPanel";
 import { BackLink } from "@/components/layout/BackLink";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { RecordBox, EmptyBox } from "@/components/ui/record-box";
 
 export default async function ImportBatchPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireModule("import", "view");
@@ -44,60 +44,50 @@ export default async function ImportBatchPage({ params }: { params: Promise<{ id
         </div>
       </GlassPanel>
 
-      <GlassPanel className="overflow-hidden p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Row</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Detail</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((r) => {
-              const raw = r.rawData as Record<string, unknown>;
-              const name =
-                {
-                  clients: raw["Full Name"],
-                  expenses: raw["Description"],
-                  transactions: raw["Client Code"],
-                  cash_book: raw["Details"] || raw["Date"],
-                }[batch.importType] ?? raw["Full Name"];
-              const detail =
-                r.errorMessage ??
-                (r.createdClientId
-                  ? "Client created"
-                  : r.createdExpenseId
-                    ? "Expense created"
-                    : r.createdTxnId
-                      ? "Transaction saved"
-                      : r.createdCashBookEntryId
-                        ? "Entry created"
-                        : "—");
-              return (
-                <TableRow key={r.id}>
-                  <TableCell>{r.rowNumber}</TableCell>
-                  <TableCell>{String(name ?? "—")}</TableCell>
-                  <TableCell>
+      {rows.length === 0 ? (
+        <EmptyBox>No rows recorded.</EmptyBox>
+      ) : (
+        <div className="space-y-2">
+          {rows.map((r) => {
+            const raw = r.rawData as Record<string, unknown>;
+            const name =
+              {
+                clients: raw["Full Name"],
+                expenses: raw["Description"],
+                transactions: raw["Client Code"],
+                cash_book: raw["Details"] || raw["Date"],
+              }[batch.importType] ?? raw["Full Name"];
+            const detail =
+              r.errorMessage ??
+              (r.createdClientId
+                ? "Client created"
+                : r.createdExpenseId
+                  ? "Expense created"
+                  : r.createdTxnId
+                    ? "Transaction saved"
+                    : r.createdCashBookEntryId
+                      ? "Entry created"
+                      : "—");
+            return (
+              <RecordBox
+                key={r.id}
+                cols={3}
+                header={
+                  <>
+                    <p className="font-medium">
+                      Row {r.rowNumber} · {String(name ?? "—")}
+                    </p>
                     <Badge variant={r.status === "success" ? "default" : "destructive"} className="capitalize">
                       {r.status}
                     </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{detail}</TableCell>
-                </TableRow>
-              );
-            })}
-            {rows.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground">
-                  No rows recorded.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </GlassPanel>
+                  </>
+                }
+                fields={[{ label: "Detail", value: detail, span: true }]}
+              />
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { BackLink } from "@/components/layout/BackLink";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { RecordBox, EmptyBox } from "@/components/ui/record-box";
 
 function money(n: string | number) {
   return Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -42,45 +42,33 @@ export default async function ClientStatementPage({
           </form>
         </GlassPanel>
 
-        {q && (
-          <GlassPanel className="overflow-hidden p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Client Code</TableHead>
-                  <TableHead>Name</TableHead>
-                  {isSuperAdmin && <TableHead>Branch</TableHead>}
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {results.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell className="font-medium">
-                      <Link href={`/reports/client-statement?clientId=${c.id}`} className="hover:underline">
-                        {c.clientCode}
-                      </Link>
-                    </TableCell>
-                    <TableCell>{c.fullName}</TableCell>
-                    {isSuperAdmin && <TableCell className="text-muted-foreground">{c.branchName}</TableCell>}
-                    <TableCell>
-                      <Badge variant={c.status === "active" ? "default" : "secondary"} className="capitalize">
-                        {c.status}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {results.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={isSuperAdmin ? 4 : 3} className="text-center text-muted-foreground">
-                      No clients match &quot;{q}&quot;.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </GlassPanel>
-        )}
+        {q &&
+          (results.length === 0 ? (
+            <EmptyBox>No clients match &quot;{q}&quot;.</EmptyBox>
+          ) : (
+            <div className="space-y-2">
+              {results.map((c) => (
+                <Link key={c.id} href={`/reports/client-statement?clientId=${c.id}`}>
+                  <RecordBox
+                    className="transition-colors hover:bg-accent/40"
+                    cols={isSuperAdmin ? 3 : 2}
+                    header={
+                      <>
+                        <p className="font-semibold">{c.fullName}</p>
+                        <Badge variant={c.status === "active" ? "default" : "secondary"} className="capitalize">
+                          {c.status}
+                        </Badge>
+                      </>
+                    }
+                    fields={[
+                      { label: "Client Code", value: c.clientCode },
+                      ...(isSuperAdmin ? [{ label: "Branch", value: c.branchName }] : []),
+                    ]}
+                  />
+                </Link>
+              ))}
+            </div>
+          ))}
       </div>
     );
   }
@@ -180,45 +168,33 @@ export default async function ClientStatementPage({
       </GlassPanel>
 
       <h2 className="text-sm font-semibold text-muted-foreground">Transaction history ({transactions.length})</h2>
-      <GlassPanel className="overflow-hidden p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Payment ID</TableHead>
-              <TableHead className="text-right">Principal Disb.</TableHead>
-              <TableHead className="text-right">Principal Recovery</TableHead>
-              <TableHead className="text-right">Profit</TableHead>
-              <TableHead className="text-right">Service Chg.</TableHead>
-              <TableHead className="text-right">New Savings</TableHead>
-              <TableHead className="text-right">Savings Recall</TableHead>
-              <TableHead className="text-right">Savings C/F</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {transactions.map((t) => (
-              <TableRow key={t.id}>
-                <TableCell>{t.transactionDate}</TableCell>
-                <TableCell className="font-mono text-xs text-muted-foreground">{t.paymentId ?? "—"}</TableCell>
-                <TableCell className="text-right">{money(t.loanDisbursement)}</TableCell>
-                <TableCell className="text-right">{money(t.loanRecovery)}</TableCell>
-                <TableCell className="text-right">{money(t.profitInterest)}</TableCell>
-                <TableCell className="text-right">{money(t.serviceCharge)}</TableCell>
-                <TableCell className="text-right">{money(t.newSavings)}</TableCell>
-                <TableCell className="text-right">{money(t.savingsRecall)}</TableCell>
-                <TableCell className="text-right font-medium">{money(t.savingsBalanceCf)}</TableCell>
-              </TableRow>
-            ))}
-            {transactions.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={9} className="text-center text-muted-foreground">
-                  No transactions recorded yet.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </GlassPanel>
+      {transactions.length === 0 ? (
+        <EmptyBox>No transactions recorded yet.</EmptyBox>
+      ) : (
+        <div className="space-y-2">
+          {transactions.map((t) => (
+            <RecordBox
+              key={t.id}
+              cols={4}
+              header={
+                <>
+                  <p className="font-medium">{t.transactionDate}</p>
+                  <p className="font-mono text-xs text-muted-foreground">{t.paymentId ?? "—"}</p>
+                </>
+              }
+              fields={[
+                { label: "Principal Disb.", value: money(t.loanDisbursement), align: "right" },
+                { label: "Principal Recovery", value: money(t.loanRecovery), align: "right" },
+                { label: "Profit", value: money(t.profitInterest), align: "right" },
+                { label: "Service Chg.", value: money(t.serviceCharge), align: "right" },
+                { label: "New Savings", value: money(t.newSavings), align: "right" },
+                { label: "Savings Recall", value: money(t.savingsRecall), align: "right" },
+                { label: "Savings C/F", value: money(t.savingsBalanceCf), align: "right" },
+              ]}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

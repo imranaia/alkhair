@@ -1,7 +1,7 @@
 import "server-only";
 import { getDb } from "./client";
 import { pendingChanges, clients, clientTransactions, users } from "./schema";
-import { eq, and, or, ne, desc } from "drizzle-orm";
+import { eq, and, or, ne, asc } from "drizzle-orm";
 
 export type PendingEntityType = "client" | "client_transaction" | "loan_agreement_application";
 
@@ -63,7 +63,8 @@ export async function listPendingChanges(branchId: number | null) {
           )
         : and(eq(pendingChanges.status, "pending"), ne(pendingChanges.entityType, "loan_agreement_application")),
     )
-    .orderBy(desc(pendingChanges.requestedAt));
+    // Oldest request first and staying there — admins work the queue in the order it came in.
+    .orderBy(asc(pendingChanges.requestedAt));
 }
 
 // Loan applications get their own dedicated review page rather than the
@@ -97,7 +98,8 @@ export async function listPendingLoanApplications(branchId: number | null) {
           )
         : and(eq(pendingChanges.status, "pending"), eq(pendingChanges.entityType, "loan_agreement_application")),
     )
-    .orderBy(desc(pendingChanges.requestedAt));
+    // Oldest request first and staying there — admins work the queue in the order it came in.
+    .orderBy(asc(pendingChanges.requestedAt));
 }
 
 export async function getPendingChangeById(id: number) {

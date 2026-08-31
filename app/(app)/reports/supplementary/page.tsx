@@ -8,7 +8,7 @@ import { BackLink } from "@/components/layout/BackLink";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { RecordBox, EmptyBox } from "@/components/ui/record-box";
 import { NotSupplementaryButton } from "./NotSupplementaryButton";
 
 const WEEKDAY_NAMES = ["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -129,60 +129,42 @@ export default async function SupplementaryReportPage({
         </div>
       </GlassPanel>
 
-      <GlassPanel className="overflow-hidden p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Client</TableHead>
-              {isSuperAdmin && <TableHead>Branch</TableHead>}
-              <TableHead>Assigned Day</TableHead>
-              <TableHead>Actual Day</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
-              <TableHead>Payment ID</TableHead>
-              {canEdit && <TableHead />}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {payments.map((p) => {
-              const amount =
-                Number(p.loanRecovery) + Number(p.newSavings) + Number(p.profitInterest) + Number(p.serviceCharge);
-              return (
-                <TableRow key={p.id}>
-                  <TableCell>{p.transactionDate}</TableCell>
-                  <TableCell>
-                    <span className="font-medium">{p.clientName}</span>{" "}
-                    <span className="text-xs text-muted-foreground">{p.clientCode}</span>
-                  </TableCell>
-                  {isSuperAdmin && <TableCell className="text-muted-foreground">{p.branchName}</TableCell>}
-                  <TableCell className="text-muted-foreground">{WEEKDAY_NAMES[p.assignedDay]}</TableCell>
-                  <TableCell className="text-muted-foreground">{WEEKDAY_NAMES[p.actualDay]}</TableCell>
-                  <TableCell>
+      {payments.length === 0 ? (
+        <EmptyBox>No supplementary payments in this range — everyone paid on their assigned day.</EmptyBox>
+      ) : (
+        <div className="space-y-2">
+          {payments.map((p) => {
+            const amount =
+              Number(p.loanRecovery) + Number(p.newSavings) + Number(p.profitInterest) + Number(p.serviceCharge);
+            return (
+              <RecordBox
+                key={p.id}
+                cols={isSuperAdmin ? 4 : 3}
+                header={
+                  <>
+                    <div>
+                      <span className="font-semibold">{p.clientName}</span>{" "}
+                      <span className="text-xs text-muted-foreground">{p.clientCode}</span>
+                    </div>
                     <Badge variant={p.classification === "early" ? "default" : "destructive"}>
                       {p.classification === "early" ? "Early" : "Late"}
                     </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">{money(amount)}</TableCell>
-                  <TableCell className="text-muted-foreground">{p.paymentId ?? "—"}</TableCell>
-                  {canEdit && (
-                    <TableCell>
-                      <NotSupplementaryButton transactionId={p.id} />
-                    </TableCell>
-                  )}
-                </TableRow>
-              );
-            })}
-            {payments.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={isSuperAdmin ? (canEdit ? 9 : 8) : canEdit ? 8 : 7} className="text-center text-muted-foreground">
-                  No supplementary payments in this range — everyone paid on their assigned day.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </GlassPanel>
+                  </>
+                }
+                fields={[
+                  { label: "Date", value: p.transactionDate },
+                  ...(isSuperAdmin ? [{ label: "Branch", value: p.branchName }] : []),
+                  { label: "Assigned Day", value: WEEKDAY_NAMES[p.assignedDay] },
+                  { label: "Actual Day", value: WEEKDAY_NAMES[p.actualDay] },
+                  { label: "Amount", value: money(amount), align: "right" as const },
+                  { label: "Payment ID", value: p.paymentId ?? "—" },
+                ]}
+                footer={canEdit && <NotSupplementaryButton transactionId={p.id} />}
+              />
+            );
+          })}
+        </div>
+      )}
 
       <p className="text-xs text-muted-foreground">
         If a payment shows here only because it was entered into the system late — not because it was actually collected

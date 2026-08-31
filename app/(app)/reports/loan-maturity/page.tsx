@@ -4,7 +4,7 @@ import { listLoanMaturityEvents } from "@/lib/db/loanMaturity";
 import { GlassPanel } from "@/components/layout/GlassPanel";
 import { BackLink } from "@/components/layout/BackLink";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { RecordBox, EmptyBox } from "@/components/ui/record-box";
 
 function money(n: string | number | null) {
   if (n === null) return "—";
@@ -44,48 +44,36 @@ export default async function LoanMaturityPage() {
         </div>
       </GlassPanel>
 
-      <GlassPanel className="overflow-hidden p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Client</TableHead>
-              {isSuperAdmin && <TableHead>Branch</TableHead>}
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Amount With Client</TableHead>
-              <TableHead>Notes</TableHead>
-              <TableHead>Recorded By</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((r) => (
-              <TableRow key={r.id}>
-                <TableCell>{r.maturedAt}</TableCell>
-                <TableCell>
-                  <Link href={`/clients/${r.clientId}`} className="font-medium hover:underline">
-                    {r.clientName}
-                  </Link>{" "}
-                  <span className="text-xs text-muted-foreground">{r.clientCode}</span>
-                </TableCell>
-                {isSuperAdmin && <TableCell className="text-muted-foreground">{r.branchName}</TableCell>}
-                <TableCell>
+      {rows.length === 0 ? (
+        <EmptyBox>No principal maturity events recorded yet.</EmptyBox>
+      ) : (
+        <div className="space-y-2">
+          {rows.map((r) => (
+            <RecordBox
+              key={r.id}
+              cols={isSuperAdmin ? 4 : 3}
+              header={
+                <>
+                  <div>
+                    <Link href={`/clients/${r.clientId}`} className="font-semibold hover:underline">
+                      {r.clientName}
+                    </Link>{" "}
+                    <span className="text-xs text-muted-foreground">{r.clientCode}</span>
+                  </div>
                   <Badge variant={r.renewed ? "default" : "destructive"}>{r.renewed ? "Renewed" : "Not Renewing"}</Badge>
-                </TableCell>
-                <TableCell className="text-right">{money(r.amountWithClient)}</TableCell>
-                <TableCell className="max-w-xs truncate text-muted-foreground">{r.notes || "—"}</TableCell>
-                <TableCell className="text-muted-foreground">{r.recordedByName}</TableCell>
-              </TableRow>
-            ))}
-            {rows.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={isSuperAdmin ? 7 : 6} className="text-center text-muted-foreground">
-                  No principal maturity events recorded yet.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </GlassPanel>
+                </>
+              }
+              fields={[
+                { label: "Date", value: r.maturedAt },
+                ...(isSuperAdmin ? [{ label: "Branch", value: r.branchName }] : []),
+                { label: "Amount With Client", value: money(r.amountWithClient), align: "right" as const },
+                { label: "Recorded By", value: r.recordedByName },
+                { label: "Notes", value: r.notes || "—", span: true },
+              ]}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

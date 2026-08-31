@@ -6,7 +6,7 @@ import { GlassPanel } from "@/components/layout/GlassPanel";
 import { BackLink } from "@/components/layout/BackLink";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { RecordBox, EmptyBox } from "@/components/ui/record-box";
 
 function money(n: string | number) {
   return Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -112,116 +112,92 @@ export default async function PortfolioTrackerPage({
       )}
 
       <h2 className="text-sm font-semibold text-muted-foreground">Active Investment</h2>
-      <GlassPanel className="overflow-hidden p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead className="text-right">Balance B/F</TableHead>
-              <TableHead className="text-right">Principal Disbursement</TableHead>
-              <TableHead className="text-right">Active Recovery</TableHead>
-              <TableHead className="text-right">Default</TableHead>
-              <TableHead className="text-right">Balance C/F</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {days.map((d) => (
-              <TableRow key={d.date}>
-                <TableCell>{d.date}</TableCell>
-                <TableCell className="text-right text-muted-foreground">{money(d.active.bf)}</TableCell>
-                <TableCell className="text-right">{money(d.active.disbursement)}</TableCell>
-                <TableCell className="text-right">{money(d.active.recovery)}</TableCell>
-                <TableCell className="text-right">{money(d.active.defaulted)}</TableCell>
-                <TableCell className="text-right font-medium">{money(d.active.cf)}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </GlassPanel>
+      {days.length === 0 ? (
+        <EmptyBox>No data for this range.</EmptyBox>
+      ) : (
+        <div className="space-y-2">
+          {days.map((d) => (
+            <RecordBox
+              key={d.date}
+              header={<p className="font-medium">{d.date}</p>}
+              cols={5}
+              fields={[
+                { label: "Balance B/F", value: money(d.active.bf), align: "right" },
+                { label: "Principal Disbursement", value: money(d.active.disbursement), align: "right" },
+                { label: "Active Recovery", value: money(d.active.recovery), align: "right" },
+                { label: "Default", value: money(d.active.defaulted), align: "right" },
+                { label: "Balance C/F", value: money(d.active.cf), align: "right" },
+              ]}
+            />
+          ))}
+        </div>
+      )}
 
       <h2 className="text-sm font-semibold text-muted-foreground">Default Investment</h2>
-      <GlassPanel className="overflow-hidden p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead className="text-right">Balance B/F</TableHead>
-              <TableHead className="text-right">New Default</TableHead>
-              <TableHead className="text-right">Default Recovery</TableHead>
-              <TableHead className="text-right">Balance C/F</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {days.map((d) => (
-              <TableRow key={d.date}>
-                <TableCell>{d.date}</TableCell>
-                <TableCell className="text-right text-muted-foreground">{money(d.default.bf)}</TableCell>
-                <TableCell className="text-right">{money(d.default.newDefault)}</TableCell>
-                <TableCell className="text-right">{money(d.default.recovered)}</TableCell>
-                <TableCell className="text-right font-medium">{money(d.default.cf)}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </GlassPanel>
+      {days.length === 0 ? (
+        <EmptyBox>No data for this range.</EmptyBox>
+      ) : (
+        <div className="space-y-2">
+          {days.map((d) => (
+            <RecordBox
+              key={d.date}
+              header={<p className="font-medium">{d.date}</p>}
+              cols={4}
+              fields={[
+                { label: "Balance B/F", value: money(d.default.bf), align: "right" },
+                { label: "New Default", value: money(d.default.newDefault), align: "right" },
+                { label: "Default Recovery", value: money(d.default.recovered), align: "right" },
+                { label: "Balance C/F", value: money(d.default.cf), align: "right" },
+              ]}
+            />
+          ))}
+        </div>
+      )}
 
       <h2 className="text-sm font-semibold text-muted-foreground">Net Office Investment</h2>
-      <GlassPanel className="overflow-hidden p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead className="text-right">Balance B/F</TableHead>
-              <TableHead className="text-right">Principal Disbursement</TableHead>
-              <TableHead className="text-right">Active Recovery</TableHead>
-              <TableHead className="text-right">Default</TableHead>
-              <TableHead className="text-right">Balance C/F</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {days.map((d) => (
-              <TableRow key={d.date}>
-                <TableCell>{d.date}</TableCell>
-                <TableCell className="text-right text-muted-foreground">{money(d.netOffice.bf)}</TableCell>
-                <TableCell className="text-right">{money(d.netOffice.disbursement)}</TableCell>
-                <TableCell className="text-right">{money(d.netOffice.recovery)}</TableCell>
-                <TableCell className="text-right">{money(d.netOffice.defaulted)}</TableCell>
-                <TableCell className="text-right font-medium">{money(d.netOffice.cf)}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </GlassPanel>
+      {days.length === 0 ? (
+        <EmptyBox>No data for this range.</EmptyBox>
+      ) : (
+        <div className="space-y-2">
+          {days.map((d) => (
+            <RecordBox
+              key={d.date}
+              header={<p className="font-medium">{d.date}</p>}
+              cols={5}
+              fields={[
+                { label: "Balance B/F", value: money(d.netOffice.bf), align: "right" },
+                { label: "Principal Disbursement", value: money(d.netOffice.disbursement), align: "right" },
+                { label: "Active Recovery", value: money(d.netOffice.recovery), align: "right" },
+                { label: "Default", value: money(d.netOffice.defaulted), align: "right" },
+                { label: "Balance C/F", value: money(d.netOffice.cf), align: "right" },
+              ]}
+            />
+          ))}
+        </div>
+      )}
 
       <h2 className="text-sm font-semibold text-muted-foreground">Collateral (Savings) Investment</h2>
-      <GlassPanel className="overflow-hidden p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead className="text-right">Balance B/F</TableHead>
-              <TableHead className="text-right">New Savings</TableHead>
-              <TableHead className="text-right">Recall</TableHead>
-              <TableHead className="text-right">Collateral In</TableHead>
-              <TableHead className="text-right">Collateral Out</TableHead>
-              <TableHead className="text-right">Balance C/F</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {days.map((d) => (
-              <TableRow key={d.date}>
-                <TableCell>{d.date}</TableCell>
-                <TableCell className="text-right text-muted-foreground">{money(d.savings.bf)}</TableCell>
-                <TableCell className="text-right">{money(d.savings.newSavings)}</TableCell>
-                <TableCell className="text-right">{money(d.savings.recall)}</TableCell>
-                <TableCell className="text-right">{money(d.savings.collateralIn)}</TableCell>
-                <TableCell className="text-right">{money(d.savings.collateralOut)}</TableCell>
-                <TableCell className="text-right font-medium">{money(d.savings.cf)}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </GlassPanel>
+      {days.length === 0 ? (
+        <EmptyBox>No data for this range.</EmptyBox>
+      ) : (
+        <div className="space-y-2">
+          {days.map((d) => (
+            <RecordBox
+              key={d.date}
+              header={<p className="font-medium">{d.date}</p>}
+              cols={6}
+              fields={[
+                { label: "Balance B/F", value: money(d.savings.bf), align: "right" },
+                { label: "New Savings", value: money(d.savings.newSavings), align: "right" },
+                { label: "Recall", value: money(d.savings.recall), align: "right" },
+                { label: "Collateral In", value: money(d.savings.collateralIn), align: "right" },
+                { label: "Collateral Out", value: money(d.savings.collateralOut), align: "right" },
+                { label: "Balance C/F", value: money(d.savings.cf), align: "right" },
+              ]}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

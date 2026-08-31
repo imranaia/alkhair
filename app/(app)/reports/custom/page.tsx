@@ -7,7 +7,7 @@ import { GlassPanel } from "@/components/layout/GlassPanel";
 import { BackLink } from "@/components/layout/BackLink";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { RecordBox, EmptyBox } from "@/components/ui/record-box";
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -158,52 +158,40 @@ export default async function CustomReportPage({
         </form>
       </GlassPanel>
 
-      <GlassPanel className="overflow-hidden p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{GROUP_BY_OPTIONS.find((g) => g.key === groupBy)?.label}</TableHead>
-              {REPORT_METRICS.filter((m) => selectedMetrics.includes(m.key)).map((m) => (
-                <TableHead key={m.key} className="text-right">
-                  {m.label}
-                </TableHead>
-              ))}
-              <TableHead className="text-right">Entries</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((r, i) => (
-              <TableRow key={i}>
-                <TableCell className="font-medium">{r.groupLabel}</TableCell>
-                {REPORT_METRICS.filter((m) => selectedMetrics.includes(m.key)).map((m) => (
-                  <TableCell key={m.key} className="text-right">
-                    {money(r[m.key])}
-                  </TableCell>
-                ))}
-                <TableCell className="text-right text-muted-foreground">{r.rowCount}</TableCell>
-              </TableRow>
-            ))}
-            {rows.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={selectedMetrics.length + 2} className="text-center text-muted-foreground">
-                  No transactions in this range.
-                </TableCell>
-              </TableRow>
-            )}
-            {rows.length > 0 && (
-              <TableRow className="font-semibold">
-                <TableCell>Total</TableCell>
-                {REPORT_METRICS.filter((m) => selectedMetrics.includes(m.key)).map((m) => (
-                  <TableCell key={m.key} className="text-right">
-                    {money(totals[m.key])}
-                  </TableCell>
-                ))}
-                <TableCell className="text-right">{rows.reduce((s, r) => s + r.rowCount, 0)}</TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </GlassPanel>
+      {rows.length === 0 ? (
+        <EmptyBox>No transactions in this range.</EmptyBox>
+      ) : (
+        <div className="space-y-2">
+          {rows.map((r, i) => (
+            <RecordBox
+              key={i}
+              cols={4}
+              header={<p className="font-semibold">{r.groupLabel}</p>}
+              fields={[
+                ...REPORT_METRICS.filter((m) => selectedMetrics.includes(m.key)).map((m) => ({
+                  label: m.label,
+                  value: money(r[m.key]),
+                  align: "right" as const,
+                })),
+                { label: "Entries", value: r.rowCount, align: "right" as const },
+              ]}
+            />
+          ))}
+          <RecordBox
+            className="border-t-2 border-border"
+            cols={4}
+            header={<p className="font-semibold">Total</p>}
+            fields={[
+              ...REPORT_METRICS.filter((m) => selectedMetrics.includes(m.key)).map((m) => ({
+                label: m.label,
+                value: money(totals[m.key]),
+                align: "right" as const,
+              })),
+              { label: "Entries", value: rows.reduce((s, r) => s + r.rowCount, 0), align: "right" as const },
+            ]}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -7,7 +7,7 @@ import { getLatestChecklist } from "@/lib/db/checklists";
 import { GlassPanel } from "@/components/layout/GlassPanel";
 import { BackLink } from "@/components/layout/BackLink";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { RecordBox, EmptyBox } from "@/components/ui/record-box";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { ClientStatusControl } from "./ClientStatusControl";
 import { RecordMaturityDialog } from "./RecordMaturityDialog";
@@ -143,37 +143,29 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
       )}
 
       {loanHistory.length > 0 && (
-        <GlassPanel className="space-y-3 p-6">
+        <div className="space-y-2">
           <h2 className="text-sm font-semibold text-muted-foreground">Loan history</h2>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Start date</TableHead>
-                <TableHead className="text-right">Principal</TableHead>
-                <TableHead className="text-right">Profit</TableHead>
-                <TableHead>Tenure</TableHead>
-                <TableHead>Purpose</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loanHistory.map((a) => (
-                <TableRow key={a.id}>
-                  <TableCell>{a.startDate}</TableCell>
-                  <TableCell className="text-right">{money(a.principalAmount)}</TableCell>
-                  <TableCell className="text-right">{money(a.profitAmount)}</TableCell>
-                  <TableCell>{a.tenureWeeks} wks</TableCell>
-                  <TableCell className="max-w-xs truncate text-xs text-muted-foreground">{a.purpose || "—"}</TableCell>
-                  <TableCell>
-                    <Badge variant={a.status === "active" ? "default" : "secondary"} className="capitalize">
-                      {a.status}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </GlassPanel>
+          {loanHistory.map((a) => (
+            <RecordBox
+              key={a.id}
+              cols={4}
+              header={
+                <>
+                  <p className="font-medium">{a.startDate}</p>
+                  <Badge variant={a.status === "active" ? "default" : "secondary"} className="capitalize">
+                    {a.status}
+                  </Badge>
+                </>
+              }
+              fields={[
+                { label: "Principal", value: money(a.principalAmount), align: "right" },
+                { label: "Profit", value: money(a.profitAmount), align: "right" },
+                { label: "Tenure", value: `${a.tenureWeeks} wks` },
+                { label: "Purpose", value: a.purpose || "—", span: true },
+              ]}
+            />
+          ))}
+        </div>
       )}
 
       {checklist && (
@@ -229,45 +221,33 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
       {canEdit && <PortalPanel clientId={client.id} existingLogin={portalLogin} />}
 
       <h2 className="text-sm font-semibold text-muted-foreground">Transaction history</h2>
-      <GlassPanel className="overflow-hidden p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Payment ID</TableHead>
-              <TableHead className="text-right">Principal Disb.</TableHead>
-              <TableHead className="text-right">Recall</TableHead>
-              <TableHead className="text-right">New Savings</TableHead>
-              <TableHead className="text-right">Collateral In</TableHead>
-              <TableHead className="text-right">Collateral Out</TableHead>
-              <TableHead className="text-right">Savings B/F</TableHead>
-              <TableHead className="text-right">Savings C/F</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {transactions.map((t) => (
-              <TableRow key={t.id}>
-                <TableCell>{t.transactionDate}</TableCell>
-                <TableCell className="font-mono text-xs text-muted-foreground">{t.paymentId ?? "—"}</TableCell>
-                <TableCell className="text-right">{money(t.loanDisbursement)}</TableCell>
-                <TableCell className="text-right">{money(t.loanRecovery)}</TableCell>
-                <TableCell className="text-right">{money(t.newSavings)}</TableCell>
-                <TableCell className="text-right">{money(t.collateralTransferIn)}</TableCell>
-                <TableCell className="text-right">{money(t.collateralTransferOut)}</TableCell>
-                <TableCell className="text-right">{money(t.savingsBalanceBf)}</TableCell>
-                <TableCell className="text-right">{money(t.savingsBalanceCf)}</TableCell>
-              </TableRow>
-            ))}
-            {transactions.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={9} className="text-center text-muted-foreground">
-                  No transactions recorded yet.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </GlassPanel>
+      {transactions.length === 0 ? (
+        <EmptyBox>No transactions recorded yet.</EmptyBox>
+      ) : (
+        <div className="space-y-2">
+          {transactions.map((t) => (
+            <RecordBox
+              key={t.id}
+              cols={4}
+              header={
+                <>
+                  <p className="font-medium">{t.transactionDate}</p>
+                  <p className="font-mono text-xs text-muted-foreground">{t.paymentId ?? "—"}</p>
+                </>
+              }
+              fields={[
+                { label: "Principal Disb.", value: money(t.loanDisbursement), align: "right" },
+                { label: "Recall", value: money(t.loanRecovery), align: "right" },
+                { label: "New Savings", value: money(t.newSavings), align: "right" },
+                { label: "Collateral In", value: money(t.collateralTransferIn), align: "right" },
+                { label: "Collateral Out", value: money(t.collateralTransferOut), align: "right" },
+                { label: "Savings B/F", value: money(t.savingsBalanceBf), align: "right" },
+                { label: "Savings C/F", value: money(t.savingsBalanceCf), align: "right" },
+              ]}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { listDormantClients } from "@/lib/db/clients";
 import { GlassPanel } from "@/components/layout/GlassPanel";
 import { BackLink } from "@/components/layout/BackLink";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { RecordBox, EmptyBox } from "@/components/ui/record-box";
 
 function money(n: string | number) {
   return Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -59,46 +59,36 @@ export default async function DormantClientsPage({
         </GlassPanel>
       )}
 
-      <GlassPanel className="overflow-hidden p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Client</TableHead>
-              {isSuperAdmin && <TableHead>Branch</TableHead>}
-              <TableHead>Status</TableHead>
-              <TableHead>Last Activity</TableHead>
-              <TableHead className="text-right">Savings Balance</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((r) => (
-              <TableRow key={r.id}>
-                <TableCell>
-                  <Link href={`/clients/${r.id}`} className="font-medium hover:underline">
-                    {r.fullName}
-                  </Link>{" "}
-                  <span className="text-xs text-muted-foreground">{r.clientCode}</span>
-                </TableCell>
-                {isSuperAdmin && <TableCell className="text-muted-foreground">{r.branchName}</TableCell>}
-                <TableCell>
+      {rows.length === 0 ? (
+        <EmptyBox>No dormant clients — everyone&apos;s been active in the last 60 days.</EmptyBox>
+      ) : (
+        <div className="space-y-2">
+          {rows.map((r) => (
+            <RecordBox
+              key={r.id}
+              cols={isSuperAdmin ? 4 : 3}
+              header={
+                <>
+                  <div>
+                    <Link href={`/clients/${r.id}`} className="font-semibold hover:underline">
+                      {r.fullName}
+                    </Link>{" "}
+                    <span className="text-xs text-muted-foreground">{r.clientCode}</span>
+                  </div>
                   <Badge variant={r.status === "dormant" ? "secondary" : "outline"} className="capitalize">
                     {r.status}
                   </Badge>
-                </TableCell>
-                <TableCell className="text-muted-foreground">{r.lastTransactionDate ?? "Never"}</TableCell>
-                <TableCell className="text-right">{money(r.savingsBalance)}</TableCell>
-              </TableRow>
-            ))}
-            {rows.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={isSuperAdmin ? 5 : 4} className="text-center text-muted-foreground">
-                  No dormant clients — everyone&apos;s been active in the last 60 days.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </GlassPanel>
+                </>
+              }
+              fields={[
+                ...(isSuperAdmin ? [{ label: "Branch", value: r.branchName }] : []),
+                { label: "Last Activity", value: r.lastTransactionDate ?? "Never" },
+                { label: "Savings Balance", value: money(r.savingsBalance), align: "right" as const },
+              ]}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
