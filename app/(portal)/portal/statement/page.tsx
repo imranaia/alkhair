@@ -39,35 +39,25 @@ export default async function PortalStatementPage() {
           <p className="text-black/60">{client.clientCode}</p>
         </div>
 
-        <table className="mt-4 w-full text-xs">
-          <thead>
-            <tr className="border-b border-black/10 text-left text-black/60">
-              <th className="py-1">Date</th>
-              <th className="py-1 text-right">Principal Disb.</th>
-              <th className="py-1 text-right">Principal Rec.</th>
-              <th className="py-1 text-right">New Savings</th>
-              <th className="py-1 text-right">Savings C/F</th>
-            </tr>
-          </thead>
-          <tbody>
-            {history.map((t) => (
-              <tr key={t.id} className="border-b border-black/5">
-                <td className="py-1">{t.transactionDate}</td>
-                <td className="py-1 text-right">{money(t.loanDisbursement)}</td>
-                <td className="py-1 text-right">{money(t.loanRecovery)}</td>
-                <td className="py-1 text-right">{money(t.newSavings)}</td>
-                <td className="py-1 text-right">{money(t.savingsBalanceCf)}</td>
-              </tr>
-            ))}
-            {history.length === 0 && (
-              <tr>
-                <td colSpan={5} className="py-4 text-center text-black/60">
-                  No transactions yet.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+        <div className="mt-4 space-y-1.5 text-xs">
+          {history.length === 0 ? (
+            <p className="py-4 text-center text-black/60">No transactions yet.</p>
+          ) : (
+            history.map((t) => (
+              <div key={t.id} className="rounded border border-black/10 p-2">
+                <div className="flex items-center justify-between">
+                  <p className="font-medium">{t.transactionDate}</p>
+                  <p className="font-medium">Savings C/F: {money(t.savingsBalanceCf)}</p>
+                </div>
+                <div className="mt-1 grid grid-cols-3 gap-2 text-black/70">
+                  <p>Principal Disb.: {money(t.loanDisbursement)}</p>
+                  <p>Principal Rec.: {money(t.loanRecovery)}</p>
+                  <p>New Savings: {money(t.newSavings)}</p>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
 
         <div className="mt-6 flex items-center justify-between border-t border-black/10 pt-3 text-xs text-black/60">
           <span>Printed {new Date().toLocaleString()}</span>
