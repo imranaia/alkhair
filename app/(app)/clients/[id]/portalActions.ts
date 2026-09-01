@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireModule } from "@/lib/auth/session";
 import { getClientById } from "@/lib/db/clients";
@@ -149,7 +150,7 @@ export async function createLoanAgreementAction(_prevState: AgreementFormState, 
 
   revalidatePath(`/clients/${client.id}`);
   revalidatePath("/transactions");
-  return { error: null };
+  redirect(`/clients/${client.id}`);
 }
 
 const checklistSchema = z.object({

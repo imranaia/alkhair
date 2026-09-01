@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireModule, getModulePermission, isAdmin } from "@/lib/auth/session";
 import { getClientById, listClientTransactions } from "@/lib/db/clients";
@@ -7,11 +8,11 @@ import { getLatestChecklist } from "@/lib/db/checklists";
 import { GlassPanel } from "@/components/layout/GlassPanel";
 import { BackLink } from "@/components/layout/BackLink";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { RecordBox, EmptyBox } from "@/components/ui/record-box";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { ClientStatusControl } from "./ClientStatusControl";
 import { RecordMaturityDialog } from "./RecordMaturityDialog";
-import { LoanAgreementDialog } from "./LoanAgreementDialog";
 import { ApplyLoanDialog } from "./ApplyLoanDialog";
 import { ChecklistDialog } from "./ChecklistDialog";
 import { PortalPanel } from "./PortalPanel";
@@ -69,7 +70,11 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {canEdit && <ChecklistDialog clientId={client.id} />}
-          {canEdit && admin && !eligibleForNewPrincipal && <LoanAgreementDialog clientId={client.id} />}
+          {canEdit && admin && !eligibleForNewPrincipal && (
+            <Button asChild size="sm" className="bg-brand text-brand-foreground hover:bg-brand/90">
+              <Link href={`/clients/${client.id}/new-agreement`}>New principal agreement</Link>
+            </Button>
+          )}
           {canEdit && !admin && !eligibleForNewPrincipal && (
             <ApplyLoanDialog
               clientId={client.id}
@@ -131,7 +136,9 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           </div>
           {canEdit &&
             (admin ? (
-              <LoanAgreementDialog clientId={client.id} />
+              <Button asChild className="bg-brand text-brand-foreground hover:bg-brand/90">
+                <Link href={`/clients/${client.id}/new-agreement`}>New principal agreement</Link>
+              </Button>
             ) : (
               <ApplyLoanDialog
                 clientId={client.id}
