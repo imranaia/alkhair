@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # Build-time only: getDb() is lazily initialized and never called during
+      # `next build` (no page in this app opts into static generation), so
+      # these just need to satisfy startup validation, not point at a real DB.
+      DATABASE_URL: postgres://ci:ci@localhost:5432/ci
+      SESSION_SECRET: ci-placeholder-session-secret-not-for-real-use
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npx tsc --noEmit
+
+      - run: npm test
+
+      - run: npm run build
