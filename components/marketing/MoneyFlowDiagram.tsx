@@ -10,10 +10,12 @@ import { EditableText } from "@/components/marketing/EditableText";
 // text for each stop comes from siteContent and is editable there.
 const STOP_ICONS = [Smartphone, HandCoins, Landmark];
 
-// How far above each badge's center the mascot's feet track — clears the
-// 28px badge radius plus a small gap, so the figure walks above the stops
-// rather than blending into the same gold tone as the circle underneath.
-const WALK_CLEARANCE = 38;
+// The walked path passes above the first and last badge, but dips below the
+// middle one — an S-curve, not a shallow arc — so it reads as a journey
+// rather than a straight hop. Clears the 28px badge radius plus a gap;
+// smaller below the middle stop since its label sits closer beneath it.
+const CLEARANCE_ABOVE = 38;
+const CLEARANCE_BELOW = 24;
 
 function pauseSvg(e: React.MouseEvent<SVGSVGElement>) {
   e.currentTarget.pauseAnimations();
@@ -56,12 +58,13 @@ export function MoneyFlowDiagram({
       if (!containerEl) return;
       const containerRect = containerEl.getBoundingClientRect();
       const next: Point[] = [];
-      for (const el of badgeRefs.current) {
+      badgeRefs.current.forEach((el, i) => {
         if (!el) return;
         const r = el.getBoundingClientRect();
-        next.push({ x: r.left + r.width / 2 - containerRect.left, y: r.top + r.height / 2 - containerRect.top - WALK_CLEARANCE });
-      }
-      setPositions(next);
+        const clearance = i === 1 ? CLEARANCE_BELOW : -CLEARANCE_ABOVE;
+        next.push({ x: r.left + r.width / 2 - containerRect.left, y: r.top + r.height / 2 - containerRect.top + clearance });
+      });
+      if (next.length === 3) setPositions(next);
     }
 
     measure();
@@ -74,10 +77,19 @@ export function MoneyFlowDiagram({
     };
   }, [steps]);
 
-  const pathD =
-    positions && positions.length === 3
-      ? `M${positions[0].x},${positions[0].y} Q${positions[1].x},${positions[1].y} ${positions[1].x},${positions[1].y} T${positions[2].x},${positions[2].y}`
-      : null;
+  // A smooth S — two cubic-bezier halves sharing a tangent at the middle
+  // point (the "S" command reflects the previous control point), not a
+  // shallow arc that kinks where it meets the center stop. Each half's
+  // control points sit at the horizontal midpoint, held at each end's own
+  // height, which is what gives the flowing "up, down, up" shape.
+  const pathD = positions
+    ? (() => {
+        const [a, m, b] = positions;
+        const mid1x = (a.x + m.x) / 2;
+        const mid2x = (m.x + b.x) / 2;
+        return `M${a.x},${a.y} C${mid1x},${a.y} ${mid1x},${m.y} ${m.x},${m.y} S${mid2x},${b.y} ${b.x},${b.y}`;
+      })()
+    : null;
 
   return (
     // pt-14 clears room above the topmost badge for the walking path.
@@ -223,7 +235,7 @@ function Mascot({ reduce, pathId, fallback }: { reduce: boolean; pathId: string;
     <g>
       {/* Plain forward loop — 0% to 100% over one lap, then restarts at the
           first stop, rather than walking the trip in reverse. */}
-      <animateMotion dur="8s" repeatCount="indefinite">
+      <animateMotion dur="11s" repeatCount="indefinite">
         <mpath href={`#${pathId}`} />
       </animateMotion>
       {figure}
