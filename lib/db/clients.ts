@@ -165,7 +165,6 @@ export async function createClient(data: {
   businessType?: string;
   businessLocation?: string;
   enrollmentDate: Date;
-  paymentDay: number;
   loanCollectorId?: number;
   openingSavings?: string;
   createdByUserId: number;
@@ -175,8 +174,8 @@ export async function createClient(data: {
   if (!branch) throw new Error("Branch not found.");
 
   return db.transaction(async (tx) => {
-    const { code } = await generateClientCode(tx, branch.code, branch.id, data.paymentDay, new Date());
     const { enrollmentWeek, enrollmentDay } = deriveEnrollmentWeekDay(data.enrollmentDate);
+    const code = await generateClientCode(tx, branch.code, branch.id, enrollmentDay);
 
     const [client] = await tx
       .insert(clients)
@@ -192,7 +191,6 @@ export async function createClient(data: {
         enrollmentWeek,
         enrollmentDay,
         enrollmentDate: data.enrollmentDate.toISOString().slice(0, 10),
-        paymentDay: data.paymentDay,
         loanCollectorId: data.loanCollectorId,
       })
       .returning();

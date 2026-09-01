@@ -127,6 +127,36 @@ export const clientMonthSequences = pgTable(
   (t) => [primaryKey({ columns: [t.branchId, t.year, t.month] })],
 );
 
+// Backs the current client-code scheme: {BRANCH}-{enrollment weekday}-{seq},
+// e.g. YOL-01-001 — a running counter per (branch, weekday) that never
+// resets, so it's a straight count of "how many clients have ever enrolled
+// on this weekday at this branch." client_month_sequences above backed the
+// previous DDMM/monthly-reset scheme and is left in place unused rather than
+// removed, since nothing currently reads it and dropping it isn't required
+// for the new scheme to work.
+export const clientWeekdaySequences = pgTable(
+  "client_weekday_sequences",
+  {
+    branchId: integer("branch_id")
+      .notNull()
+      .references(() => branches.id),
+    weekday: smallint("weekday").notNull(),
+    lastSeq: integer("last_seq").notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.branchId, t.weekday] })],
+);
+
+// Backs each loan agreement's loan_id (e.g. YOL-01-001-L1, ...-L2 for that
+// same client's next loan after the first is repaid) — a running counter per
+// client, so a loan's number always reflects how many loans that client has
+// ever had, regardless of how many other clients exist.
+export const clientLoanSequences = pgTable("client_loan_sequences", {
+  clientId: integer("client_id")
+    .primaryKey()
+    .references(() => clients.id),
+  lastSeq: integer("last_seq").notNull().default(0),
+});
+
 export const clients = pgTable(
   "clients",
   {
@@ -142,11 +172,6 @@ export const clients = pgTable(
     enrollmentWeek: smallint("enrollment_week").notNull(),
     enrollmentDay: smallint("enrollment_day").notNull(),
     enrollmentDate: date("enrollment_date").notNull(),
-    // Admin-chosen weekly payment/collection day (1=Mon..6=Sat), independent
-    // of enrollmentDate — encoded into the client code, e.g. YOL-3-0503-01-2026.
-    // Pre-existing clients were backfilled from enrollment_day before this
-    // was tightened to NOT NULL.
-    paymentDay: smallint("payment_day").notNull(),
     loanCollectorId: integer("loan_collector_id").references(() => users.id),
     status: varchar("status", { length: 20 }).notNull().default("active"),
     // Business/trade profile — matches the source ledger's own "Supervision
@@ -230,6 +255,14 @@ export const loanAgreements = pgTable(
     // recovered total it sums from startDate onward, so that payment isn't
     // double-counted as progress against this new agreement too.
     openingRecoveryOffset: numeric("opening_recovery_offset", { precision: 14, scale: 2 }).notNull().default("0"),
+    // The permanent, human-readable reference for this specific loan, e.g.
+    // ZUB-01-001-L1 — the client's own code with a per-client loan sequence
+    // appended (see client_loan_sequences).
+    loanId: varchar("loan_id", { length: 40 }).notNull().unique(),
+    // Set per agreement rather than on the client — the collection day a
+    // client is assigned can differ from one loan to the next, so it isn't a
+    // permanent client attribute.
+    paymentDay: smallint("payment_day").notNull(),
     status: varchar("status", { length: 20 }).notNull().default("active"), // active | completed | cancelled
     // What the borrower told us they need it for — set when the agreement
     // comes from an approved loan application; null for direct admin-created

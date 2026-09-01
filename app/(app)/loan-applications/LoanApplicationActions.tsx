@@ -6,7 +6,9 @@ import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { PAYMENT_DAYS } from "@/lib/constants/paymentDays";
 import { approveLoanApplicationAction, rejectLoanApplicationAction, type LoanApplicationActionState } from "./actions";
 
 const initialState: LoanApplicationActionState = { error: null };
@@ -118,6 +120,22 @@ export function LoanApplicationActions({
             <div className="space-y-1.5">
               <Label htmlFor="startDate">Start date</Label>
               <Input id="startDate" name="startDate" type="date" defaultValue={today()} required />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="paymentDay">Payment day</Label>
+              <Select name="paymentDay" required>
+                <SelectTrigger id="paymentDay" className="w-full">
+                  <SelectValue placeholder="Which day will they pay?" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAYMENT_DAYS.map((d) => (
+                    <SelectItem key={d.value} value={String(d.value)}>
+                      {d.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {state.error && (

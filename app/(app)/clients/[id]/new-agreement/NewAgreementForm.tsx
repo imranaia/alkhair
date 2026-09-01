@@ -4,6 +4,8 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PAYMENT_DAYS } from "@/lib/constants/paymentDays";
 import { createLoanAgreementAction, type AgreementFormState } from "../portalActions";
 
 const initialState: AgreementFormState = { error: null };
@@ -37,6 +39,25 @@ export function NewAgreementForm({ clientId }: { clientId: number }) {
       <div className="space-y-1.5">
         <Label htmlFor="startDate">Start date</Label>
         <Input id="startDate" name="startDate" type="date" defaultValue={today()} required />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="paymentDay">Payment day</Label>
+        <Select name="paymentDay" required>
+          <SelectTrigger id="paymentDay" className="w-full">
+            <SelectValue placeholder="Which day will they pay?" />
+          </SelectTrigger>
+          <SelectContent>
+            {PAYMENT_DAYS.map((d) => (
+              <SelectItem key={d.value} value={String(d.value)}>
+                {d.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">
+          This loan&apos;s weekly collection day — can differ from their previous loan&apos;s.
+        </p>
       </div>
 
       {state.error && (

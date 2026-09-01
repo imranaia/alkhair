@@ -6,7 +6,6 @@ import { revalidatePath } from "next/cache";
 import { requireModule, isAdmin } from "@/lib/auth/session";
 import { createClient, updateClient, getClientById, setClientStatus, CLIENT_STATUSES, type ClientStatus } from "@/lib/db/clients";
 import { createLoanMaturityEvent } from "@/lib/db/loanMaturity";
-import { InvalidPaymentDayError } from "@/lib/services/clientCode";
 import { submitForApproval } from "@/lib/db/pendingChanges";
 import { logAction } from "@/lib/db/audit";
 
@@ -18,7 +17,6 @@ const clientSchema = z.object({
   businessType: z.string().trim().max(80).optional().or(z.literal("")),
   businessLocation: z.string().trim().max(120).optional().or(z.literal("")),
   enrollmentDate: z.string().refine((v) => !Number.isNaN(Date.parse(v)), "Invalid date"),
-  paymentDay: z.coerce.number().int().min(1).max(6),
   branchId: z.coerce.number().int().positive().optional(),
   loanCollectorId: z.coerce.number().int().positive().optional(),
   openingSavings: z.coerce.number().nonnegative().optional(),
@@ -37,7 +35,6 @@ export async function createClientAction(_prevState: ClientFormState, formData: 
     businessType: formData.get("businessType"),
     businessLocation: formData.get("businessLocation"),
     enrollmentDate: formData.get("enrollmentDate"),
-    paymentDay: formData.get("paymentDay"),
     branchId: formData.get("branchId") || undefined,
     loanCollectorId: formData.get("loanCollectorId") || undefined,
     openingSavings: formData.get("openingSavings") || undefined,
@@ -51,28 +48,19 @@ export async function createClientAction(_prevState: ClientFormState, formData: 
     return { error: "A branch is required." };
   }
 
-  let client;
-  try {
-    client = await createClient({
-      branchId,
-      fullName: parsed.data.fullName,
-      phone: parsed.data.phone || undefined,
-      address: parsed.data.address || undefined,
-      groupName: parsed.data.groupName || undefined,
-      businessType: parsed.data.businessType || undefined,
-      businessLocation: parsed.data.businessLocation || undefined,
-      enrollmentDate: new Date(parsed.data.enrollmentDate),
-      paymentDay: parsed.data.paymentDay,
-      loanCollectorId: parsed.data.loanCollectorId,
-      openingSavings: parsed.data.openingSavings?.toString(),
-      createdByUserId: user.userId,
-    });
-  } catch (err) {
-    if (err instanceof InvalidPaymentDayError) {
-      return { error: err.message };
-    }
-    throw err;
-  }
+  const client = await createClient({
+    branchId,
+    fullName: parsed.data.fullName,
+    phone: parsed.data.phone || undefined,
+    address: parsed.data.address || undefined,
+    groupName: parsed.data.groupName || undefined,
+    businessType: parsed.data.businessType || undefined,
+    businessLocation: parsed.data.businessLocation || undefined,
+    enrollmentDate: new Date(parsed.data.enrollmentDate),
+    loanCollectorId: parsed.data.loanCollectorId,
+    openingSavings: parsed.data.openingSavings?.toString(),
+    createdByUserId: user.userId,
+  });
 
   await logAction({
     userId: user.userId,

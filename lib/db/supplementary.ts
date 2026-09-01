@@ -1,13 +1,14 @@
 import "server-only";
 import { getDb } from "./client";
-import { clients, clientTransactions, branches } from "./schema";
+import { clients, clientTransactions, branches, loanAgreements } from "./schema";
 import { eq, and, ne, gte, lte, sql, isNull, or } from "drizzle-orm";
 
-// A "supplementary" payment is one made on a day other than the client's
-// assigned collection day (clients.payment_day — the officer's explicit
-// choice at enrollment, baked into the client code — not clients.enrollment_day,
-// which is only the weekday the enrollment date happened to fall on) —
-// derived automatically from the transaction date, never manually tagged.
+// A "supplementary" payment is one made on a day other than the collection
+// day set on the client's *current active loan* (loan_agreements.payment_day
+// — set per agreement, since it can differ from one loan to the next, not a
+// permanent client attribute) — derived automatically from the transaction
+// date, never manually tagged. A client with no active loan has no schedule
+// to be off from, so they don't appear here at all (inner join below).
 // "early" = collected before their scheduled weekday, "late" = after it.
 // Staff can override a false positive (e.g. data entered late for a payment
 // actually collected on time) via supplementaryOverride='not_supplementary'.
@@ -22,10 +23,11 @@ export async function listSupplementaryPayments(params: {
   const conditions = [
     gte(clientTransactions.transactionDate, params.from),
     lte(clientTransactions.transactionDate, params.to),
+    eq(loanAgreements.status, "active"),
     // Only rows where the client actually paid something in — excludes
     // disbursement-only visits, which have no "scheduled payment day" to miss.
     sql`(${clientTransactions.loanRecovery} > 0 OR ${clientTransactions.newSavings} > 0 OR ${clientTransactions.profitInterest} > 0 OR ${clientTransactions.serviceCharge} > 0)`,
-    sql`extract(isodow from ${clientTransactions.transactionDate}) <> ${clients.paymentDay}`,
+    sql`extract(isodow from ${clientTransactions.transactionDate}) <> ${loanAgreements.paymentDay}`,
     or(isNull(clientTransactions.supplementaryOverride), ne(clientTransactions.supplementaryOverride, "not_supplementary")),
   ];
   if (params.branchId !== null) conditions.push(eq(clientTransactions.branchId, params.branchId));
@@ -42,7 +44,7 @@ export async function listSupplementaryPayments(params: {
       clientName: clients.fullName,
       groupName: clients.groupName,
       branchName: branches.name,
-      assignedDay: clients.paymentDay,
+      assignedDay: loanAgreements.paymentDay,
       actualDay: sql<number>`extract(isodow from ${clientTransactions.transactionDate})::int`,
       loanRecovery: clientTransactions.loanRecovery,
       newSavings: clientTransactions.newSavings,
@@ -52,6 +54,7 @@ export async function listSupplementaryPayments(params: {
     .from(clientTransactions)
     .innerJoin(clients, eq(clients.id, clientTransactions.clientId))
     .innerJoin(branches, eq(branches.id, clientTransactions.branchId))
+    .innerJoin(loanAgreements, eq(loanAgreements.clientId, clients.id))
     .where(and(...conditions))
     .orderBy(clientTransactions.transactionDate);
 

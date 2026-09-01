@@ -15,6 +15,20 @@
       "when": 1788249653796,
       "tag": "0001_add_loan_agreement_opening_recovery_offset",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788271766884,
+      "tag": "0002_add_loan_id_and_payment_day_per_loan",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1788272549648,
+      "tag": "0003_tighten_loan_id_payment_day_drop_client_payment_day",
+      "breakpoints": true
     }
   ]
 }

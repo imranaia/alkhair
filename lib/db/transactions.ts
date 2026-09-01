@@ -20,11 +20,15 @@ export async function listDailyEntryRows(params: { branchId: number; collectorId
       clientCode: clients.clientCode,
       fullName: clients.fullName,
       groupName: clients.groupName,
-      // The officer-assigned weekly collection day (baked into the client
-      // code at enrollment) — not clients.enrollmentDay, which is only the
-      // weekday the enrollment date happened to fall on and no longer drives
-      // anything (see deriveEnrollmentWeekDay in lib/services/clientCode.ts).
-      paymentDay: clients.paymentDay,
+      // The collection day for the client's current active loan — set per
+      // agreement (it can differ from one loan to the next), not a
+      // permanent client attribute. Null when the client has no active loan
+      // right now, in which case there's nothing to be due/overdue on.
+      paymentDay: sql<number | null>`(
+        select la.payment_day from loan_agreements la
+        where la.client_id = ${clients.id} and la.status = 'active'
+        order by la.start_date desc limit 1
+      )`,
       paymentId: clientTransactions.paymentId,
       loanDisbursement: clientTransactions.loanDisbursement,
       loanRecovery: clientTransactions.loanRecovery,
@@ -62,7 +66,10 @@ export async function listDailyEntryRows(params: { branchId: number; collectorId
 
   return rows.map((r) => {
     let paymentStatus: "paid_on_day" | "paid_supplementary" | "due_today" | "overdue" | "not_due_yet";
-    if (r.lastPaymentThisWeek) {
+    if (r.paymentDay === null) {
+      // No active loan right now — nothing scheduled to be due or overdue on.
+      paymentStatus = "not_due_yet";
+    } else if (r.lastPaymentThisWeek) {
       const paidDay = getISODay(new Date(r.lastPaymentThisWeek + "T00:00:00Z"));
       paymentStatus = paidDay === r.paymentDay ? "paid_on_day" : "paid_supplementary";
     } else if (selectedDay === r.paymentDay) {

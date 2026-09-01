@@ -53,22 +53,12 @@ export type ParsedClientRow = {
   address?: string;
   groupName?: string;
   enrollmentDate?: string;
-  paymentDay?: string;
   loanCollectorName?: string;
   openingSavings?: string;
   raw: Record<string, unknown>;
 };
 
-const CLIENT_COLUMNS = [
-  "Full Name",
-  "Phone",
-  "Address",
-  "Group",
-  "Enrollment Date",
-  "Payment Day",
-  "Collections Officer",
-  "Opening Savings",
-] as const;
+const CLIENT_COLUMNS = ["Full Name", "Phone", "Address", "Group", "Enrollment Date", "Collections Officer", "Opening Savings"] as const;
 
 export async function parseClientsWorkbook(buffer: ArrayBuffer): Promise<ParsedClientRow[]> {
   const rows = await readSheetRows(buffer, CLIENT_COLUMNS);
@@ -79,7 +69,6 @@ export async function parseClientsWorkbook(buffer: ArrayBuffer): Promise<ParsedC
     address: raw["Address"] || undefined,
     groupName: raw["Group"] || undefined,
     enrollmentDate: raw["Enrollment Date"] || undefined,
-    paymentDay: raw["Payment Day"] || undefined,
     loanCollectorName: raw["Collections Officer"] || undefined,
     openingSavings: raw["Opening Savings"] || undefined,
     raw,
@@ -96,7 +85,6 @@ export async function buildClientsTemplate(): Promise<Buffer> {
     Address: "12 Main Street",
     Group: "Group A",
     "Enrollment Date": "2026-07-27",
-    "Payment Day": "Monday",
     "Collections Officer": "",
     "Opening Savings": "0",
   });

@@ -10,6 +10,7 @@ import { BackLink } from "@/components/layout/BackLink";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RecordBox, EmptyBox } from "@/components/ui/record-box";
+import { PAYMENT_DAYS } from "@/lib/constants/paymentDays";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { ClientStatusControl } from "./ClientStatusControl";
 import { RecordMaturityDialog } from "./RecordMaturityDialog";
@@ -153,6 +154,10 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
       {loanSummary && (
         <GlassPanel className="grid grid-cols-2 gap-4 p-6 sm:grid-cols-4">
+          <div className="col-span-2 min-w-0 sm:col-span-4">
+            <p className="text-xs text-muted-foreground">Loan ID</p>
+            <p className="font-mono text-sm font-medium break-words">{loanSummary.agreement.loanId}</p>
+          </div>
           <div className="min-w-0">
             <p className="text-xs text-muted-foreground">Principal</p>
             <p className="text-lg font-semibold break-words">{money(loanSummary.agreement.principalAmount)}</p>
@@ -183,7 +188,10 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
               cols={4}
               header={
                 <>
-                  <p className="font-medium">{a.startDate}</p>
+                  <div>
+                    <p className="font-mono text-xs text-muted-foreground">{a.loanId}</p>
+                    <p className="font-medium">{a.startDate}</p>
+                  </div>
                   <Badge variant={a.status === "active" ? "default" : "secondary"} className="capitalize">
                     {a.status}
                   </Badge>
@@ -193,6 +201,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                 { label: "Principal", value: money(a.principalAmount), align: "right" },
                 { label: "Profit", value: money(a.profitAmount), align: "right" },
                 { label: "Tenure", value: `${a.tenureWeeks} wks` },
+                { label: "Payment day", value: PAYMENT_DAYS.find((d) => d.value === a.paymentDay)?.label ?? "—" },
                 { label: "Purpose", value: a.purpose || "—", span: true },
               ]}
             />

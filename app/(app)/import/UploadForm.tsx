@@ -26,7 +26,7 @@ const KIND_LABEL: Record<ImportKind, string> = {
 };
 const KIND_HINT: Record<ImportKind, string> = {
   clients:
-    "Upload an .xlsx file with columns: Full Name, Phone, Address, Group, Enrollment Date, Payment Day, Collections Officer, Opening Savings.",
+    "Upload an .xlsx file with columns: Full Name, Phone, Address, Group, Enrollment Date, Collections Officer, Opening Savings.",
   expenses: "Upload an .xlsx file with columns: Category, Description, Amount, Expense Date, Receipt Ref.",
   transactions:
     "Upload an .xlsx file with columns: Client Code, Date, Principal Disbursement, Principal Recovery, Profit, Service Charge, New Savings, Savings Recall, Collateral In, Collateral Out, Notes.",

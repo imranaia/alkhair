@@ -1,9 +1,10 @@
 import "server-only";
 import { getDb } from "./client";
-import { loanAgreements, clientTransactions } from "./schema";
+import { loanAgreements, clientTransactions, clients } from "./schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { saveTransactionRow, getTransactionRow } from "./transactions";
 import { computeTotals, computeSchedule, nextDueInstallment } from "@/lib/services/loanAgreement";
+import { generateLoanId } from "@/lib/services/clientCode";
 
 export class OutstandingLoanError extends Error {}
 
@@ -26,6 +27,7 @@ export async function createLoanAgreement(data: {
   profitAmount: number;
   tenureWeeks: number;
   startDate: string;
+  paymentDay: number;
   purpose?: string;
   createdBy: number;
 }) {
@@ -34,14 +36,6 @@ export async function createLoanAgreement(data: {
   const db = getDb();
   const { totalRepayable, installmentAmount } = computeTotals(data);
 
-  // Any other row still flagged active for this client must, per the guard
-  // above, already be fully repaid — self-heal it here rather than leaving a
-  // stale duplicate "active" row behind (see getActiveLoanSummary).
-  await db
-    .update(loanAgreements)
-    .set({ status: "completed" })
-    .where(and(eq(loanAgreements.clientId, data.clientId), eq(loanAgreements.status, "active")));
-
   // A recovery amount already recorded for this client on the start date —
   // typically the previous loan's closing payment on a same-day renewal —
   // must be excluded from this new agreement's own recovered total (see
@@ -49,22 +43,39 @@ export async function createLoanAgreement(data: {
   const existing = await getTransactionRow(data.clientId, data.startDate);
   const openingRecoveryOffset = existing?.loanRecovery ?? "0";
 
-  const [agreement] = await db
-    .insert(loanAgreements)
-    .values({
-      clientId: data.clientId,
-      branchId: data.branchId,
-      principalAmount: data.principalAmount.toFixed(2),
-      profitAmount: data.profitAmount.toFixed(2),
-      totalRepayable: totalRepayable.toFixed(2),
-      tenureWeeks: data.tenureWeeks,
-      installmentAmount: installmentAmount.toFixed(2),
-      startDate: data.startDate,
-      openingRecoveryOffset,
-      purpose: data.purpose,
-      createdBy: data.createdBy,
-    })
-    .returning();
+  const agreement = await db.transaction(async (tx) => {
+    const [client] = await tx.select({ clientCode: clients.clientCode }).from(clients).where(eq(clients.id, data.clientId));
+    if (!client) throw new Error("Client not found.");
+    const loanId = await generateLoanId(tx, data.clientId, client.clientCode);
+
+    // Any other row still flagged active for this client must, per the
+    // guard above, already be fully repaid — self-heal it here rather than
+    // leaving a stale duplicate "active" row behind (see getActiveLoanSummary).
+    await tx
+      .update(loanAgreements)
+      .set({ status: "completed" })
+      .where(and(eq(loanAgreements.clientId, data.clientId), eq(loanAgreements.status, "active")));
+
+    const [row] = await tx
+      .insert(loanAgreements)
+      .values({
+        clientId: data.clientId,
+        branchId: data.branchId,
+        loanId,
+        principalAmount: data.principalAmount.toFixed(2),
+        profitAmount: data.profitAmount.toFixed(2),
+        totalRepayable: totalRepayable.toFixed(2),
+        tenureWeeks: data.tenureWeeks,
+        installmentAmount: installmentAmount.toFixed(2),
+        startDate: data.startDate,
+        paymentDay: data.paymentDay,
+        openingRecoveryOffset,
+        purpose: data.purpose,
+        createdBy: data.createdBy,
+      })
+      .returning();
+    return row;
+  });
 
   // Keep the existing ledger/reports consistent — the disbursement still
   // flows through Week Summary/Portfolio Tracker exactly as a manually

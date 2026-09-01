@@ -19,7 +19,7 @@ type Row = {
   clientCode: string;
   fullName: string;
   groupName: string | null;
-  paymentDay: number;
+  paymentDay: number | null;
   paymentStatus: PaymentStatus;
   paymentId: string | null;
   loanDisbursement: string | null;
@@ -110,7 +110,7 @@ function ClientCard({
     return result;
   }, initialState);
   const filledFields = FIELDS.filter((f) => Number(row[f.key] ?? 0) > 0);
-  const offDay = selectedDay !== row.paymentDay;
+  const offDay = row.paymentDay !== null && selectedDay !== row.paymentDay;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -136,7 +136,8 @@ function ClientCard({
             {row.groupName ? ` · ${row.groupName}` : ""}
           </div>
           <div className="text-xs text-muted-foreground">
-            Pays {WEEKDAY_NAMES[row.paymentDay]} · B/F {money(row.savingsBalanceBf)}
+            {row.paymentDay !== null ? `Pays ${WEEKDAY_NAMES[row.paymentDay]}` : "No active loan"} · B/F{" "}
+            {money(row.savingsBalanceBf)}
             {row.paymentId && <span className="font-mono"> · {row.paymentId}</span>}
           </div>
 
@@ -177,15 +178,21 @@ function ClientCard({
               )}
             >
               <p>
-                {row.fullName}&apos;s assigned collection day is <strong>{WEEKDAY_NAMES[row.paymentDay]}</strong>.
-                {offDay ? (
-                  <>
-                    {" "}
-                    Today ({WEEKDAY_NAMES[selectedDay]}) is a different day, so a payment recorded here will be counted as a{" "}
-                    <strong>Supplementary</strong> payment automatically.
-                  </>
+                {row.paymentDay === null ? (
+                  <>{row.fullName} has no active loan, so there&apos;s no assigned collection day to compare against.</>
                 ) : (
-                  " Today matches their assigned day, so a payment recorded here counts as on-time — this override isn't needed."
+                  <>
+                    {row.fullName}&apos;s assigned collection day is <strong>{WEEKDAY_NAMES[row.paymentDay]}</strong>.
+                    {offDay ? (
+                      <>
+                        {" "}
+                        Today ({WEEKDAY_NAMES[selectedDay]}) is a different day, so a payment recorded here will be counted
+                        as a <strong>Supplementary</strong> payment automatically.
+                      </>
+                    ) : (
+                      " Today matches their assigned day, so a payment recorded here counts as on-time — this override isn't needed."
+                    )}
+                  </>
                 )}
               </p>
               <label className={cn("flex items-center gap-1.5", !offDay && "opacity-50")}>

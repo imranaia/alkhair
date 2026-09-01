@@ -104,6 +104,7 @@ const agreementSchema = z.object({
   profitAmount: z.coerce.number().nonnegative(),
   tenureWeeks: z.coerce.number().int().positive().max(104),
   startDate: z.string().refine((v) => !Number.isNaN(Date.parse(v)), "Invalid date"),
+  paymentDay: z.coerce.number().int().min(1).max(6),
 });
 
 export type AgreementFormState = { error: string | null };
@@ -116,6 +117,7 @@ export async function createLoanAgreementAction(_prevState: AgreementFormState, 
     profitAmount: formData.get("profitAmount"),
     tenureWeeks: formData.get("tenureWeeks"),
     startDate: formData.get("startDate"),
+    paymentDay: formData.get("paymentDay"),
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
@@ -132,6 +134,7 @@ export async function createLoanAgreementAction(_prevState: AgreementFormState, 
       profitAmount: parsed.data.profitAmount,
       tenureWeeks: parsed.data.tenureWeeks,
       startDate: parsed.data.startDate,
+      paymentDay: parsed.data.paymentDay,
       createdBy: user.userId,
     });
   } catch (err) {

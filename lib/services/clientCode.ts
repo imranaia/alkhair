@@ -1,51 +1,53 @@
 import "server-only";
 import { getISOWeek, getISODay } from "date-fns";
 import { sql } from "drizzle-orm";
-import { clientMonthSequences } from "@/lib/db/schema";
+import { clientWeekdaySequences, clientLoanSequences } from "@/lib/db/schema";
 import type { DbTx } from "@/lib/db/client";
-
-export class InvalidPaymentDayError extends Error {}
 
 function pad(n: number, width: number) {
   return String(n).padStart(width, "0");
 }
 
-// {BRANCH}-{paymentDay 1-6}-{DDMM}-{seq in month, 2 digits}-{YYYY}
-// e.g. YOL-3-0503-01-2026: Wednesday collection, created 5 March, 1st client
-// that month at this branch, 2026. paymentDay is the admin's explicit choice
-// (not derived from createdDate), and the monthly sequence resets every
-// calendar month via client_month_sequences.
-export async function generateClientCode(
-  tx: DbTx,
-  branchCode: string,
-  branchId: number,
-  paymentDay: number,
-  createdDate: Date,
-): Promise<{ code: string; paymentDay: number }> {
-  if (!Number.isInteger(paymentDay) || paymentDay < 1 || paymentDay > 6) {
-    throw new InvalidPaymentDayError("Payment day must be Monday–Saturday (1–6).");
-  }
-
-  const year = createdDate.getFullYear();
-  const month = createdDate.getMonth() + 1;
-  const day = createdDate.getDate();
-
+// {BRANCH}-{enrollment weekday}-{seq}, e.g. ZUB-01-001: the 1st client ever
+// to enroll on a Monday at this branch. Permanent — never regenerated once
+// assigned. The weekday is which day of the week the client enrolled on
+// (see deriveEnrollmentWeekDay below), not their loan collection day —
+// collection day is set per loan agreement instead (see generateLoanId),
+// since it can differ from one loan to the next for the same client. The
+// sequence is a running count per (branch, weekday) that never resets.
+export async function generateClientCode(tx: DbTx, branchCode: string, branchId: number, weekday: number): Promise<string> {
   const result = await tx.execute(sql`
-    INSERT INTO ${clientMonthSequences} (branch_id, year, month, last_seq)
-    VALUES (${branchId}, ${year}, ${month}, 1)
-    ON CONFLICT (branch_id, year, month)
-    DO UPDATE SET last_seq = ${clientMonthSequences.lastSeq} + 1
+    INSERT INTO ${clientWeekdaySequences} (branch_id, weekday, last_seq)
+    VALUES (${branchId}, ${weekday}, 1)
+    ON CONFLICT (branch_id, weekday)
+    DO UPDATE SET last_seq = ${clientWeekdaySequences.lastSeq} + 1
     RETURNING last_seq;
   `);
   const seq = (result.rows[0] as unknown as { last_seq: number }).last_seq;
 
-  const code = `${branchCode.toUpperCase()}-${paymentDay}-${pad(day, 2)}${pad(month, 2)}-${pad(seq, 2)}-${year}`;
-  return { code, paymentDay };
+  return `${branchCode.toUpperCase()}-${pad(weekday, 2)}-${pad(seq, 3)}`;
 }
 
-// Retained for the historical enrollment_week/enrollment_day columns, which
-// stay populated from enrollmentDate for record-keeping but no longer drive
-// the client code (see generateClientCode above).
+// {clientCode}-L{n}, e.g. ZUB-01-001-L1, then -L2 for that same client's next
+// loan once the first is repaid — the permanent reference for one specific
+// loan agreement, connected to (built from) the client's own permanent code.
+// n is a running count per client that never resets.
+export async function generateLoanId(tx: DbTx, clientId: number, clientCode: string): Promise<string> {
+  const result = await tx.execute(sql`
+    INSERT INTO ${clientLoanSequences} (client_id, last_seq)
+    VALUES (${clientId}, 1)
+    ON CONFLICT (client_id)
+    DO UPDATE SET last_seq = ${clientLoanSequences.lastSeq} + 1
+    RETURNING last_seq;
+  `);
+  const seq = (result.rows[0] as unknown as { last_seq: number }).last_seq;
+
+  return `${clientCode}-L${seq}`;
+}
+
+// Retained for the historical enrollment_week/enrollment_day columns — the
+// weekday now feeds directly into the client code (see generateClientCode
+// above), while the week number is kept purely for record-keeping.
 export function deriveEnrollmentWeekDay(enrollmentDate: Date): { enrollmentWeek: number; enrollmentDay: number } {
   return { enrollmentWeek: getISOWeek(enrollmentDate), enrollmentDay: getISODay(enrollmentDate) };
 }
