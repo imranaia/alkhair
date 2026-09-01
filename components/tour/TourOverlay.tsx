@@ -122,10 +122,13 @@ export function TourOverlay() {
         <div
           className="pointer-events-none fixed rounded-xl ring-2 ring-primary transition-[top,left,width,height] duration-200"
           style={{
-            top: rect.top - 8,
+            // Clamp to the visible viewport — a target that's much taller than
+            // the screen (a long card grid) would otherwise draw a spotlight
+            // that extends far past what's actually on screen.
+            top: Math.max(8, rect.top - 8),
             left: rect.left - 8,
             width: rect.width + 16,
-            height: rect.height + 16,
+            height: Math.min(rect.height + 16, window.innerHeight - 16),
             boxShadow: "0 0 0 9999px rgba(10, 12, 16, 0.6)",
           }}
         />

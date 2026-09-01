@@ -55,15 +55,15 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   return (
     <div className="space-y-4">
       <BackLink href="/clients" label="Back to Clients" />
-      <div className="flex items-center justify-between gap-2.5">
-        <div className="flex items-center gap-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
           <h1 className="text-lg font-semibold">{client.fullName}</h1>
           <Badge variant={client.status === "active" ? "default" : "secondary"} className="capitalize">
             {client.status}
           </Badge>
           {canEdit && <ClientStatusControl clientId={client.id} status={client.status} />}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {canEdit && <ChecklistDialog clientId={client.id} />}
           {canEdit && admin && !hasNoPrincipalYet && <LoanAgreementDialog clientId={client.id} />}
           {canEdit && !admin && !hasNoPrincipalYet && (
