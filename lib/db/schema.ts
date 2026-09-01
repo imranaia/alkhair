@@ -660,3 +660,15 @@ export const importBatchesRelations = relations(importBatches, ({ many }) => ({
 export const importRowsRelations = relations(importRows, ({ one }) => ({
   batch: one(importBatches, { fields: [importRows.importBatchId], references: [importBatches.id] }),
 }));
+
+// ===================== Site content (landing page CMS) =====================
+// One row per editable page — currently just "landing". Super admins edit
+// this in place on the public landing page itself; everyone else just reads
+// whatever's here (see lib/db/siteContent.ts for the fallback defaults used
+// before this row exists).
+export const siteContent = pgTable("site_content", {
+  key: varchar("key", { length: 40 }).primaryKey(),
+  content: jsonb("content").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedBy: integer("updated_by").references(() => users.id),
+});
