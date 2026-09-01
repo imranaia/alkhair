@@ -42,6 +42,13 @@ export async function createLoanAgreement(data: {
     .set({ status: "completed" })
     .where(and(eq(loanAgreements.clientId, data.clientId), eq(loanAgreements.status, "active")));
 
+  // A recovery amount already recorded for this client on the start date —
+  // typically the previous loan's closing payment on a same-day renewal —
+  // must be excluded from this new agreement's own recovered total (see
+  // openingRecoveryOffset on the schema and getActiveLoanSummary below).
+  const existing = await getTransactionRow(data.clientId, data.startDate);
+  const openingRecoveryOffset = existing?.loanRecovery ?? "0";
+
   const [agreement] = await db
     .insert(loanAgreements)
     .values({
@@ -53,6 +60,7 @@ export async function createLoanAgreement(data: {
       tenureWeeks: data.tenureWeeks,
       installmentAmount: installmentAmount.toFixed(2),
       startDate: data.startDate,
+      openingRecoveryOffset,
       purpose: data.purpose,
       createdBy: data.createdBy,
     })
@@ -63,7 +71,6 @@ export async function createLoanAgreement(data: {
   // entered one would. saveTransactionRow's upsert sets every field, so any
   // other figure already recorded for this client/date is merged in rather
   // than overwritten.
-  const existing = await getTransactionRow(data.clientId, data.startDate);
   const newDisbursement = (Number(existing?.loanDisbursement ?? 0) + data.principalAmount).toFixed(2);
   await saveTransactionRow({
     clientId: data.clientId,
@@ -111,8 +118,13 @@ export async function getActiveLoanSummary(clientId: number) {
     .from(clientTransactions)
     .where(and(eq(clientTransactions.clientId, clientId), sql`${clientTransactions.transactionDate} >= ${agreement.startDate}`));
 
+  // Exclude whatever recovery was already sitting on the start-date row
+  // before this agreement existed (see openingRecoveryOffset) — otherwise a
+  // same-day renewal double-counts the previous loan's closing payment as
+  // progress against this one too.
+  const recoveredTotal = Math.max(0, Number(recovered?.total ?? 0) - Number(agreement.openingRecoveryOffset ?? 0));
   const totalRepayable = Number(agreement.totalRepayable);
-  const remainingBalance = Math.max(0, totalRepayable - Number(recovered?.total ?? 0));
+  const remainingBalance = Math.max(0, totalRepayable - recoveredTotal);
   const isActive = remainingBalance > 0;
   const healedStatus = isActive ? "active" : "completed";
   if (agreement.status !== healedStatus) {

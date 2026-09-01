@@ -1,0 +1,1 @@
+ALTER TABLE "loan_agreements" ADD COLUMN "opening_recovery_offset" numeric(14, 2) DEFAULT '0' NOT NULL;

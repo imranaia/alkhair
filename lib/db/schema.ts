@@ -224,6 +224,12 @@ export const loanAgreements = pgTable(
     tenureWeeks: integer("tenure_weeks").notNull(),
     installmentAmount: numeric("installment_amount", { precision: 14, scale: 2 }).notNull(),
     startDate: date("start_date").notNull(),
+    // A recovery payment already recorded for this client/date *before* this
+    // agreement existed — almost always the previous loan's closing payment
+    // on a same-day renewal. getActiveLoanSummary subtracts this from the
+    // recovered total it sums from startDate onward, so that payment isn't
+    // double-counted as progress against this new agreement too.
+    openingRecoveryOffset: numeric("opening_recovery_offset", { precision: 14, scale: 2 }).notNull().default("0"),
     status: varchar("status", { length: 20 }).notNull().default("active"), // active | completed | cancelled
     // What the borrower told us they need it for — set when the agreement
     // comes from an approved loan application; null for direct admin-created
