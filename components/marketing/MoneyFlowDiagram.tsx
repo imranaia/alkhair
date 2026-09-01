@@ -252,7 +252,7 @@ function Mascot({ reduce, pathId, fallback }: { reduce: boolean; pathId: string;
     <g>
       {/* Plain forward loop — 0% to 100% over one lap, then restarts at the
           first stop, rather than walking the trip in reverse. */}
-      <animateMotion dur="18s" repeatCount="indefinite">
+      <animateMotion dur="22s" repeatCount="indefinite">
         <mpath href={`#${pathId}`} />
       </animateMotion>
       {figure}
