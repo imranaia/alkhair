@@ -226,6 +226,82 @@
   }
 }
 
+/* The little figure that walks between the "How the money moves" stops —
+   a two-leg alternating swing plus a synced body bob, the same technique as
+   a classic sprite walk-cycle: each leg rotates ±13deg from its hip pivot,
+   180deg out of phase with the other (via animation-delay), while the whole
+   body dips a couple pixels at the midpoint of each stride. */
+@keyframes mascot-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+@keyframes mascot-leg-swing {
+  0%,
+  100% {
+    transform: rotate(13deg);
+  }
+  50% {
+    transform: rotate(-13deg);
+  }
+}
+
+/* Per-stop micro-animations on the "How the money moves" badges — small
+   illustrated touches layered on the static stop icon (a tap ripple, a
+   rising coin, a deposit sliding in) alongside the figure that travels the
+   connecting path between them. */
+@keyframes money-flow-tap-ripple {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.55;
+  }
+  70%,
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+@keyframes money-flow-coin-pop {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-10px);
+    opacity: 1;
+  }
+  85% {
+    opacity: 0;
+  }
+}
+@keyframes money-flow-deposit-slide {
+  0%,
+  20% {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+  60% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  80%,
+  100% {
+    transform: translateY(-6px);
+    opacity: 0;
+  }
+}
+
 /* Print isolation: mark exactly one element `.print-area` (e.g. a receipt)
    and only it survives printing — the rest of the app (sidebar, dialog
    chrome, everything) is hidden regardless of where in the tree it sits. */
