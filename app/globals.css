@@ -268,14 +268,14 @@
 @keyframes money-flow-coin-pop {
   0%,
   100% {
-    transform: translateY(0);
+    transform: translateY(4px);
     opacity: 0;
   }
   15% {
     opacity: 1;
   }
   50% {
-    transform: translateY(-10px);
+    transform: translateY(-4px);
     opacity: 1;
   }
   85% {
