@@ -17,7 +17,7 @@ const STOP_ICONS = [Smartphone, HandCoins, Landmark];
 // that text is CMS-editable and can run to different lengths), not just the
 // badge circle.
 const CLEARANCE_ABOVE = 38;
-const CLEARANCE_BELOW_TEXT = 16;
+const CLEARANCE_BELOW_TEXT = 28;
 
 function pauseSvg(e: React.MouseEvent<SVGSVGElement>) {
   e.currentTarget.pauseAnimations();
@@ -155,13 +155,12 @@ export function MoneyFlowDiagram({
                 />
               )}
               {!reduce && i === 1 && (
-                // Starts low (clear of the centered hand-coins icon), rises
-                // toward the top of the circle, and fades out before it
-                // would cross the rim onto the plain background — the
-                // keyframe below handles both the rise and the fade.
+                // Stays entirely above the hand-coins icon — appears there,
+                // makes a small rise, fades out, and resets — rather than
+                // traveling up from below and passing through the icon.
                 <span
                   aria-hidden
-                  className="pointer-events-none absolute inset-x-0 bottom-2 text-center text-xs font-bold text-[oklch(0.28_0.04_75)]"
+                  className="pointer-events-none absolute inset-x-0 top-2 text-center text-xs font-bold text-[oklch(0.28_0.04_75)]"
                   style={{ animation: "money-flow-coin-pop 2.6s ease-in-out infinite" }}
                 >
                   ₦
@@ -253,7 +252,7 @@ function Mascot({ reduce, pathId, fallback }: { reduce: boolean; pathId: string;
     <g>
       {/* Plain forward loop — 0% to 100% over one lap, then restarts at the
           first stop, rather than walking the trip in reverse. */}
-      <animateMotion dur="15s" repeatCount="indefinite">
+      <animateMotion dur="18s" repeatCount="indefinite">
         <mpath href={`#${pathId}`} />
       </animateMotion>
       {figure}
