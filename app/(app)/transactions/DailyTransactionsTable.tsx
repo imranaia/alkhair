@@ -19,7 +19,7 @@ type Row = {
   clientCode: string;
   fullName: string;
   groupName: string | null;
-  enrollmentDay: number;
+  paymentDay: number;
   paymentStatus: PaymentStatus;
   paymentId: string | null;
   loanDisbursement: string | null;
@@ -110,7 +110,7 @@ function ClientCard({
     return result;
   }, initialState);
   const filledFields = FIELDS.filter((f) => Number(row[f.key] ?? 0) > 0);
-  const offDay = selectedDay !== row.enrollmentDay;
+  const offDay = selectedDay !== row.paymentDay;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -136,7 +136,7 @@ function ClientCard({
             {row.groupName ? ` · ${row.groupName}` : ""}
           </div>
           <div className="text-xs text-muted-foreground">
-            Pays {WEEKDAY_NAMES[row.enrollmentDay]} · B/F {money(row.savingsBalanceBf)}
+            Pays {WEEKDAY_NAMES[row.paymentDay]} · B/F {money(row.savingsBalanceBf)}
             {row.paymentId && <span className="font-mono"> · {row.paymentId}</span>}
           </div>
 
@@ -177,7 +177,7 @@ function ClientCard({
               )}
             >
               <p>
-                {row.fullName}&apos;s assigned collection day is <strong>{WEEKDAY_NAMES[row.enrollmentDay]}</strong>.
+                {row.fullName}&apos;s assigned collection day is <strong>{WEEKDAY_NAMES[row.paymentDay]}</strong>.
                 {offDay ? (
                   <>
                     {" "}

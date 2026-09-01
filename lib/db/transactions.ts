@@ -1,7 +1,7 @@
 import "server-only";
 import { getDb } from "./client";
 import { clients, clientTransactions } from "./schema";
-import { eq, and, asc, desc, lt, gte, sql } from "drizzle-orm";
+import { eq, and, asc, desc, lt, sql } from "drizzle-orm";
 import type { DbTx } from "./client";
 import { generatePaymentId } from "@/lib/services/paymentId";
 import { startOfWeek, getISODay } from "date-fns";
@@ -20,7 +20,11 @@ export async function listDailyEntryRows(params: { branchId: number; collectorId
       clientCode: clients.clientCode,
       fullName: clients.fullName,
       groupName: clients.groupName,
-      enrollmentDay: clients.enrollmentDay,
+      // The officer-assigned weekly collection day (baked into the client
+      // code at enrollment) — not clients.enrollmentDay, which is only the
+      // weekday the enrollment date happened to fall on and no longer drives
+      // anything (see deriveEnrollmentWeekDay in lib/services/clientCode.ts).
+      paymentDay: clients.paymentDay,
       paymentId: clientTransactions.paymentId,
       loanDisbursement: clientTransactions.loanDisbursement,
       loanRecovery: clientTransactions.loanRecovery,
@@ -60,10 +64,10 @@ export async function listDailyEntryRows(params: { branchId: number; collectorId
     let paymentStatus: "paid_on_day" | "paid_supplementary" | "due_today" | "overdue" | "not_due_yet";
     if (r.lastPaymentThisWeek) {
       const paidDay = getISODay(new Date(r.lastPaymentThisWeek + "T00:00:00Z"));
-      paymentStatus = paidDay === r.enrollmentDay ? "paid_on_day" : "paid_supplementary";
-    } else if (selectedDay === r.enrollmentDay) {
+      paymentStatus = paidDay === r.paymentDay ? "paid_on_day" : "paid_supplementary";
+    } else if (selectedDay === r.paymentDay) {
       paymentStatus = "due_today";
-    } else if (selectedDay > r.enrollmentDay) {
+    } else if (selectedDay > r.paymentDay) {
       paymentStatus = "overdue";
     } else {
       paymentStatus = "not_due_yet";
@@ -74,6 +78,15 @@ export async function listDailyEntryRows(params: { branchId: number; collectorId
 
 // Matches the source ledger's own C/F formula: B/F + New Savings - Savings
 // Recall + Collateral Transfer In - Collateral Transfer Out.
+//
+// A single set-based UPDATE using window functions rather than a
+// read-all-rows-then-update-one-at-a-time loop: the old loop rewrote every
+// later row one at a time (slower the longer a client's history got), and
+// wasn't concurrency-safe — two saves close together for the same client
+// could each read the same starting balance before either had written,
+// leaving the B/F->C/F chain inconsistent. This is one atomic statement:
+// Postgres row-locks the affected rows for its duration, so a second
+// concurrent recompute for the same client simply waits its turn.
 async function recomputeSavingsForward(tx: DbTx, clientId: number, fromDate: string) {
   const [prior] = await tx
     .select({ cf: clientTransactions.savingsBalanceCf })
@@ -82,33 +95,29 @@ async function recomputeSavingsForward(tx: DbTx, clientId: number, fromDate: str
     .orderBy(desc(clientTransactions.transactionDate))
     .limit(1);
 
-  const rows = await tx
-    .select({
-      id: clientTransactions.id,
-      newSavings: clientTransactions.newSavings,
-      savingsRecall: clientTransactions.savingsRecall,
-      collateralTransferIn: clientTransactions.collateralTransferIn,
-      collateralTransferOut: clientTransactions.collateralTransferOut,
-    })
-    .from(clientTransactions)
-    .where(and(eq(clientTransactions.clientId, clientId), gte(clientTransactions.transactionDate, fromDate)))
-    .orderBy(asc(clientTransactions.transactionDate));
+  const priorBf = prior?.cf ?? "0";
 
-  let bf = prior?.cf ?? "0";
-  for (const row of rows) {
-    const cf = (
-      Number(bf) +
-      Number(row.newSavings) -
-      Number(row.savingsRecall) +
-      Number(row.collateralTransferIn) -
-      Number(row.collateralTransferOut)
-    ).toFixed(2);
-    await tx
-      .update(clientTransactions)
-      .set({ savingsBalanceBf: bf, savingsBalanceCf: cf, updatedAt: new Date() })
-      .where(eq(clientTransactions.id, row.id));
-    bf = cf;
-  }
+  await tx.execute(sql`
+    with ordered as (
+      select id, transaction_date,
+        (new_savings - savings_recall + collateral_transfer_in - collateral_transfer_out) as delta
+      from client_transactions
+      where client_id = ${clientId} and transaction_date >= ${fromDate}
+    ),
+    computed as (
+      select id, transaction_date,
+        ${priorBf}::numeric + sum(delta) over (order by transaction_date) as cf
+      from ordered
+    ),
+    final as (
+      select id, coalesce(lag(cf) over (order by transaction_date), ${priorBf}::numeric) as bf, cf
+      from computed
+    )
+    update client_transactions as t
+    set savings_balance_bf = final.bf, savings_balance_cf = final.cf, updated_at = now()
+    from final
+    where t.id = final.id
+  `);
 }
 
 // Used by the approval workflow to tell a create (goes through immediately)
