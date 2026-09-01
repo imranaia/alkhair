@@ -50,6 +50,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   const portalLogin = await getClientLogin(clientId);
   const checklist = await getLatestChecklist(clientId);
   const admin = isAdmin(user.roleKey);
+  const hasNoPrincipalYet = !loanSummary && loanHistory.length === 0;
 
   return (
     <div className="space-y-4">
@@ -64,8 +65,8 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         </div>
         <div className="flex items-center gap-2">
           {canEdit && <ChecklistDialog clientId={client.id} />}
-          {canEdit && admin && <LoanAgreementDialog clientId={client.id} />}
-          {canEdit && !admin && (
+          {canEdit && admin && !hasNoPrincipalYet && <LoanAgreementDialog clientId={client.id} />}
+          {canEdit && !admin && !hasNoPrincipalYet && (
             <ApplyLoanDialog
               clientId={client.id}
               fullName={client.fullName}
@@ -112,6 +113,29 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           <p className="font-medium">{client.businessLocation || "—"}</p>
         </div>
       </GlassPanel>
+
+      {hasNoPrincipalYet && (
+        <GlassPanel className="flex flex-wrap items-center justify-between gap-3 border-2 border-brand/50 bg-brand/5 p-5">
+          <div>
+            <p className="font-semibold">No principal yet</p>
+            <p className="text-sm text-muted-foreground">
+              This client hasn&apos;t taken a principal. {canEdit ? "Apply for their first one below." : ""}
+            </p>
+          </div>
+          {canEdit &&
+            (admin ? (
+              <LoanAgreementDialog clientId={client.id} />
+            ) : (
+              <ApplyLoanDialog
+                clientId={client.id}
+                fullName={client.fullName}
+                clientCode={client.clientCode}
+                phone={client.phone}
+                businessType={client.businessType}
+              />
+            ))}
+        </GlassPanel>
+      )}
 
       {loanSummary && (
         <GlassPanel className="grid grid-cols-2 gap-4 p-6 sm:grid-cols-4">

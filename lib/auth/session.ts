@@ -35,7 +35,11 @@ export const sessionOptions: SessionOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    // 30-minute idle timeout: proxy.ts re-saves the session on every
+    // authenticated request, which re-issues this cookie with a fresh
+    // 30-minute window — so an active user never hits it, but 30 minutes of
+    // no requests expires the cookie outright.
+    maxAge: 60 * 30,
   },
 };
 

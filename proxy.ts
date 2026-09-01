@@ -20,6 +20,12 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // Sliding 30-minute idle timeout: re-saving on every authenticated request
+  // re-issues the session cookie with a fresh maxAge, so an active user's
+  // cookie never actually reaches its expiry — 30 minutes with no requests
+  // lets it expire outright, and the check above then redirects to /login.
+  await session.save();
+
   return response;
 }
 
