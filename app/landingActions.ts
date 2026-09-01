@@ -39,6 +39,15 @@ export async function saveLandingFieldAction<K extends keyof LandingContent>(
 ): Promise<SaveLandingFieldState> {
   const user = await requireSuperAdmin();
 
+  // `field` is only a valid key at compile time — a Server Action is a real
+  // network endpoint, so a hand-crafted request could send anything here.
+  // Without this check, an unrecognized field would hit fieldSchemas[field]
+  // as undefined and throw on the next line instead of returning a normal
+  // error.
+  if (!(field in fieldSchemas)) {
+    return { error: "Unknown field." };
+  }
+
   const schema = fieldSchemas[field];
   const parsed = schema.safeParse(value);
   if (!parsed.success) {
