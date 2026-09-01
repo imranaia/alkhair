@@ -266,19 +266,20 @@
   }
 }
 @keyframes money-flow-coin-pop {
-  0%,
-  100% {
-    transform: translateY(4px);
+  0% {
+    transform: translateY(0);
     opacity: 0;
   }
-  15% {
+  10% {
     opacity: 1;
   }
-  50% {
-    transform: translateY(-4px);
+  70% {
+    transform: translateY(-34px);
     opacity: 1;
   }
-  85% {
+  85%,
+  100% {
+    transform: translateY(-34px);
     opacity: 0;
   }
 }

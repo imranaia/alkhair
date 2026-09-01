@@ -12,10 +12,12 @@ const STOP_ICONS = [Smartphone, HandCoins, Landmark];
 
 // The walked path passes above the first and last badge, but dips below the
 // middle one — an S-curve, not a shallow arc — so it reads as a journey
-// rather than a straight hop. Clears the 28px badge radius plus a gap;
-// smaller below the middle stop since its label sits closer beneath it.
+// rather than a straight hop. Clears the 28px badge radius plus a gap. The
+// middle stop's dip clears its own label + description text (measured, since
+// that text is CMS-editable and can run to different lengths), not just the
+// badge circle.
 const CLEARANCE_ABOVE = 38;
-const CLEARANCE_BELOW = 24;
+const CLEARANCE_BELOW_TEXT = 16;
 
 function pauseSvg(e: React.MouseEvent<SVGSVGElement>) {
   e.currentTarget.pauseAnimations();
@@ -47,6 +49,7 @@ export function MoneyFlowDiagram({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const badgeRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const stopRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [positions, setPositions] = useState<Point[] | null>(null);
 
   useLayoutEffect(() => {
@@ -61,8 +64,16 @@ export function MoneyFlowDiagram({
       badgeRefs.current.forEach((el, i) => {
         if (!el) return;
         const r = el.getBoundingClientRect();
-        const clearance = i === 1 ? CLEARANCE_BELOW : -CLEARANCE_ABOVE;
-        next.push({ x: r.left + r.width / 2 - containerRect.left, y: r.top + r.height / 2 - containerRect.top + clearance });
+        const x = r.left + r.width / 2 - containerRect.left;
+        if (i === 1) {
+          // Below the whole stop's content (badge + label + description),
+          // not just the badge — the text is editable and can run longer.
+          const stopEl = stopRefs.current[i];
+          const bottom = stopEl ? stopEl.getBoundingClientRect().bottom - containerRect.top : r.bottom - containerRect.top;
+          next.push({ x, y: bottom + CLEARANCE_BELOW_TEXT });
+        } else {
+          next.push({ x, y: r.top + r.height / 2 - containerRect.top - CLEARANCE_ABOVE });
+        }
       });
       if (next.length === 3) setPositions(next);
     }
@@ -110,6 +121,9 @@ export function MoneyFlowDiagram({
         {stops.map((stop, i) => (
           <div
             key={i}
+            ref={(el) => {
+              stopRefs.current[i] = el;
+            }}
             className={cn(
               "flex flex-col items-center gap-3 text-center md:w-64",
               i === 1 && "md:mt-8",
@@ -141,10 +155,14 @@ export function MoneyFlowDiagram({
                 />
               )}
               {!reduce && i === 1 && (
+                // Starts low (clear of the centered hand-coins icon), rises
+                // toward the top of the circle, and fades out before it
+                // would cross the rim onto the plain background — the
+                // keyframe below handles both the rise and the fade.
                 <span
                   aria-hidden
-                  className="pointer-events-none absolute inset-x-0 top-1/2 -mt-2 text-center text-xs font-bold text-[oklch(0.28_0.04_75)]"
-                  style={{ animation: "money-flow-coin-pop 2.4s ease-in-out infinite" }}
+                  className="pointer-events-none absolute inset-x-0 bottom-2 text-center text-xs font-bold text-[oklch(0.28_0.04_75)]"
+                  style={{ animation: "money-flow-coin-pop 2.6s ease-in-out infinite" }}
                 >
                   ₦
                 </span>
@@ -235,7 +253,7 @@ function Mascot({ reduce, pathId, fallback }: { reduce: boolean; pathId: string;
     <g>
       {/* Plain forward loop — 0% to 100% over one lap, then restarts at the
           first stop, rather than walking the trip in reverse. */}
-      <animateMotion dur="11s" repeatCount="indefinite">
+      <animateMotion dur="15s" repeatCount="indefinite">
         <mpath href={`#${pathId}`} />
       </animateMotion>
       {figure}
