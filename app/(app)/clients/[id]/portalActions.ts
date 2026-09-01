@@ -113,12 +113,19 @@ const agreementSchema = z.object({
   loanAmountReviewed: z.coerce.boolean().optional(),
   stockAvailabilityChecked: z.coerce.boolean(),
   bankDetails: z.string().trim().max(500).optional(),
+  instantApprove: z.coerce.boolean().optional(),
 });
 
 export type AgreementFormState = { error: string | null };
 
+// Branch admin can prepare and submit a full agreement here, but cannot give
+// it final approval — their submission always goes into the review queue
+// (loan_agreement_application) for super_admin (or whoever super_admin
+// assigns) to approve, same as the simpler officer-submitted request path
+// below. Only super_admin can tick "instantApprove" to skip the queue and
+// create the agreement outright.
 export async function createLoanAgreementAction(_prevState: AgreementFormState, formData: FormData): Promise<AgreementFormState> {
-  const user = await requireModule("clients", "edit");
+  const user = await requireModule("loan_applications", "create");
   // Empty optional number/text inputs arrive as "" — strip them so
   // z.coerce.number().optional() doesn't coerce "" to 0 and fail elsewhere.
   const raw = Object.fromEntries(Array.from(formData.entries()).filter(([, v]) => v !== ""));
@@ -129,12 +136,60 @@ export async function createLoanAgreementAction(_prevState: AgreementFormState, 
     supervisionReportAttached: formData.get("supervisionReportAttached") === "on",
     loanAmountReviewed: formData.get("loanAmountReviewed") === "on",
     stockAvailabilityChecked: formData.get("stockAvailabilityChecked") === "on",
+    instantApprove: formData.get("instantApprove") === "on",
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
   const client = await assertClientInScope(parsed.data.clientId, user.branchId, user.roleKey);
+  const instant = user.roleKey === "super_admin" && parsed.data.instantApprove === true;
+
+  if (!instant) {
+    const active = await getActiveLoanSummary(client.id);
+    if (active) {
+      return {
+        error: `This client has an outstanding principal of ₦${active.remainingBalance.toLocaleString()} remaining on the principal started ${active.agreement.startDate}. A new principal cannot be applied for until it is fully repaid.`,
+      };
+    }
+
+    await submitForApproval({
+      entityType: "loan_agreement_application",
+      entityId: client.id,
+      branchId: client.branchId,
+      proposedChanges: {
+        amountRequested: parsed.data.amountApplied ?? parsed.data.principalAmount,
+        tenureWeeksRequested: parsed.data.tenureWeeks,
+        product: parsed.data.product,
+        principalAmount: parsed.data.principalAmount,
+        profitAmount: parsed.data.profitAmount,
+        startDate: parsed.data.startDate,
+        paymentDay: parsed.data.paymentDay,
+        amountApplied: parsed.data.amountApplied,
+        recommendedAmount: parsed.data.recommendedAmount,
+        applicationFormFilled: parsed.data.applicationFormFilled,
+        appraisalReportAttached: parsed.data.appraisalReportAttached,
+        supervisionReportAttached: parsed.data.supervisionReportAttached,
+        loanAmountReviewed: parsed.data.loanAmountReviewed,
+        stockAvailabilityChecked: parsed.data.stockAvailabilityChecked,
+        bankDetails: parsed.data.bankDetails,
+      },
+      requestedBy: user.userId,
+    });
+
+    await logAction({
+      userId: user.userId,
+      branchId: client.branchId,
+      action: "client.loan_agreement_submitted",
+      entityType: "loan_agreement_application",
+      entityId: client.id,
+      after: { principalAmount: parsed.data.principalAmount, profitAmount: parsed.data.profitAmount, tenureWeeks: parsed.data.tenureWeeks },
+    });
+
+    revalidatePath(`/clients/${client.id}`);
+    revalidatePath("/agreements");
+    redirect(`/clients/${client.id}`);
+  }
 
   let agreement;
   try {

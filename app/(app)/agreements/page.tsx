@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireModule } from "@/lib/auth/session";
+import { requireModule, getModulePermission } from "@/lib/auth/session";
 import { listPendingLoanApplications } from "@/lib/db/pendingChanges";
 import { listActiveLoanAgreements } from "@/lib/db/loanAgreements";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ function money(n: string | number) {
 
 export default async function AgreementsPage() {
   const user = await requireModule("loan_applications", "view");
+  const { canCreate, canEdit } = await getModulePermission("loan_applications");
   const isSuperAdmin = user.roleKey === "super_admin";
 
   const [pending, ongoing] = await Promise.all([
@@ -40,7 +41,7 @@ export default async function AgreementsPage() {
       ) : (
         <div className="space-y-3">
           {pending.map((r) => (
-            <LoanApplicationCard key={r.id} row={r} />
+            <LoanApplicationCard key={r.id} row={r} canRecommend={canCreate} canApprove={canEdit} />
           ))}
         </div>
       )}

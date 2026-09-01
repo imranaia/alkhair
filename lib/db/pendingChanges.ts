@@ -112,6 +112,26 @@ export async function getPendingChangeById(id: number) {
   return row ?? null;
 }
 
+// Branch admin's "recommend" step on a pending loan application — merges a
+// recommended amount (and who set it) into the request's proposed_changes
+// without touching its status, so it stays pending for the actual approver.
+// Not a claim: unlike approval, two people recommending in quick succession
+// isn't a correctness problem, so this is a plain conditional update rather
+// than an atomic claim-or-fail.
+export async function recommendLoanApplicationAmount(id: number, recommendedAmount: number, recommendedByName: string) {
+  const db = getDb();
+  const existing = await getPendingChangeById(id);
+  if (!existing || existing.status !== "pending") return null;
+
+  const proposedChanges = { ...(existing.proposedChanges as Record<string, unknown>), recommendedAmount, recommendedByName };
+  const [row] = await db
+    .update(pendingChanges)
+    .set({ proposedChanges })
+    .where(and(eq(pendingChanges.id, id), eq(pendingChanges.status, "pending")))
+    .returning();
+  return row ?? null;
+}
+
 // For rendering a before/after diff on the approvals page. entityId for a
 // 'client_transaction' pending change is the client_transactions row's own
 // primary key (known at submission time, since a non-admin edit can only

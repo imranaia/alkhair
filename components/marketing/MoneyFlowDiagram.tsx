@@ -15,7 +15,9 @@ const MOBILE_PATH = "M110,60 C40,180 40,240 110,320 C180,400 180,480 110,560";
 
 // The narrative device for "how the money moves": one coin travels the full
 // apply -> disburse -> repay loop on a native SVG path (no JS animation
-// loop), so it stays cheap even with the loop running indefinitely.
+// loop), so it stays cheap even with the loop running indefinitely. 9s (up
+// from an earlier 4s) so it reads as a deliberate journey between the three
+// stops rather than a blur.
 export function MoneyFlowDiagram() {
   const reduce = useReducedMotion();
 
@@ -28,7 +30,7 @@ export function MoneyFlowDiagram() {
         className="absolute inset-0 hidden h-full w-full md:block"
       >
         <path id="flow-desktop" d={DESKTOP_PATH} fill="none" stroke="var(--border)" strokeWidth={2} />
-        <Coin pathId="flow-desktop" reduce={!!reduce} startX={90} startY={110} />
+        <Coin id="desktop" pathId="flow-desktop" reduce={!!reduce} startX={90} startY={110} />
       </svg>
       <svg
         aria-hidden
@@ -37,7 +39,7 @@ export function MoneyFlowDiagram() {
         className="absolute inset-0 block h-full w-full md:hidden"
       >
         <path id="flow-mobile" d={MOBILE_PATH} fill="none" stroke="var(--border)" strokeWidth={2} />
-        <Coin pathId="flow-mobile" reduce={!!reduce} startX={110} startY={60} />
+        <Coin id="mobile" pathId="flow-mobile" reduce={!!reduce} startX={110} startY={60} />
       </svg>
 
       <div className="relative flex flex-col gap-10 md:flex-row md:items-start md:justify-between md:gap-6">
@@ -68,15 +70,43 @@ export function MoneyFlowDiagram() {
   );
 }
 
-function Coin({ pathId, reduce, startX, startY }: { pathId: string; reduce: boolean; startX: number; startY: number }) {
+// A coin, not a dot — same gold gradient and soft drop-shadow as the static
+// icon circles above, so the traveling one reads as "the same money" moving
+// between them rather than an abstract marker.
+function Coin({ id, pathId, reduce, startX, startY }: { id: string; pathId: string; reduce: boolean; startX: number; startY: number }) {
+  const gradientId = `coin-gradient-${id}`;
+  const shadowId = `coin-shadow-${id}`;
+
+  const defs = (
+    <defs>
+      <radialGradient id={gradientId} cx="35%" cy="30%" r="75%">
+        <stop offset="0%" stopColor="oklch(0.92 0.1 90)" />
+        <stop offset="60%" stopColor="var(--gold)" />
+        <stop offset="100%" stopColor="oklch(0.58 0.1 75)" />
+      </radialGradient>
+      <filter id={shadowId} x="-60%" y="-60%" width="220%" height="220%">
+        <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="rgba(0,0,0,0.35)" />
+      </filter>
+    </defs>
+  );
+
   if (reduce) {
-    return <circle r={8} cx={startX} cy={startY} fill="var(--gold)" />;
+    return (
+      <>
+        {defs}
+        <circle r={10} cx={startX} cy={startY} fill={`url(#${gradientId})`} filter={`url(#${shadowId})`} />
+      </>
+    );
   }
+
   return (
-    <circle r={8} fill="var(--gold)">
-      <animateMotion dur="4s" repeatCount="indefinite">
-        <mpath href={`#${pathId}`} />
-      </animateMotion>
-    </circle>
+    <>
+      {defs}
+      <circle r={10} fill={`url(#${gradientId})`} filter={`url(#${shadowId})`} stroke="oklch(0.98 0.02 90)" strokeWidth={1}>
+        <animateMotion dur="9s" repeatCount="indefinite">
+          <mpath href={`#${pathId}`} />
+        </animateMotion>
+      </circle>
+    </>
   );
 }

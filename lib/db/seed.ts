@@ -45,7 +45,11 @@ const PERMISSION_MATRIX: Record<string, Record<string, [boolean, boolean, boolea
     ledger: [true, true, true, false],
     reports: [true, false, false, false],
     import: [true, true, false, false],
-    loan_applications: [true, false, true, false],
+    // Branch admin can create/submit an agreement and recommend an amount on
+    // a pending one, but final approval is reserved for super_admin (or
+    // whoever super_admin specifically assigns via a custom role) — hence
+    // create:true, edit:false, unlike every other module here.
+    loan_applications: [true, true, false, false],
     approvals: [true, false, true, false],
     users: [true, true, true, false],
   },

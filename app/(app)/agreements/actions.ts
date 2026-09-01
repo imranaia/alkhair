@@ -8,6 +8,7 @@ import {
   claimPendingChangeApproval,
   claimPendingChangeRejection,
   revertPendingChangeToPending,
+  recommendLoanApplicationAmount,
 } from "@/lib/db/pendingChanges";
 import { createLoanAgreement, OutstandingLoanError } from "@/lib/db/loanAgreements";
 import { logAction } from "@/lib/db/audit";
@@ -30,6 +31,44 @@ const approveSchema = z.object({
 });
 
 export type LoanApplicationActionState = { error: string | null };
+
+// Branch admin's "recommend" step — sets a recommended amount on a still-
+// pending request without approving it, so whoever gives final approval
+// (super_admin, or someone super_admin has assigned) sees it as a starting
+// point. Gated on "create" rather than "edit": branch admin has create but
+// not edit on this module by default, precisely so they can do this without
+// being able to approve outright.
+export async function recommendLoanApplicationAction(id: number, recommendedAmount: number): Promise<{ error: string | null }> {
+  const user = await requireModule("loan_applications", "create");
+
+  const change = await getPendingChangeById(id);
+  if (!change || change.status !== "pending" || change.entityType !== "loan_agreement_application") {
+    return { error: "This application is no longer pending." };
+  }
+  if (user.roleKey !== "super_admin" && change.branchId !== user.branchId) {
+    return { error: "Not authorized for this branch." };
+  }
+  if (!Number.isFinite(recommendedAmount) || recommendedAmount <= 0) {
+    return { error: "Enter a valid recommended amount." };
+  }
+
+  const updated = await recommendLoanApplicationAmount(id, recommendedAmount, user.fullName);
+  if (!updated) {
+    return { error: "This application was already handled by someone else." };
+  }
+
+  await logAction({
+    userId: user.userId,
+    branchId: change.branchId,
+    action: "loan_application.recommend",
+    entityType: "loan_agreement_application",
+    entityId: change.entityId,
+    after: { recommendedAmount },
+  });
+
+  revalidatePath("/agreements");
+  return { error: null };
+}
 
 export async function approveLoanApplicationAction(
   id: number,

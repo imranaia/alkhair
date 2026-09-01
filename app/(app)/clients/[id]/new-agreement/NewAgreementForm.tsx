@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,8 +25,17 @@ function CheckRow({ name, label, defaultChecked }: { name: string; label: string
   );
 }
 
-export function NewAgreementForm({ clientId, isReturning }: { clientId: number; isReturning: boolean }) {
+export function NewAgreementForm({
+  clientId,
+  isReturning,
+  isSuperAdmin,
+}: {
+  clientId: number;
+  isReturning: boolean;
+  isSuperAdmin: boolean;
+}) {
   const [state, formAction, pending] = useActionState(createLoanAgreementAction, initialState);
+  const [instantApprove, setInstantApprove] = useState(false);
 
   return (
     <form action={formAction} className="space-y-4">
@@ -119,6 +128,19 @@ export function NewAgreementForm({ clientId, isReturning }: { clientId: number; 
         <Input id="bankDetails" name="bankDetails" />
       </div>
 
+      {isSuperAdmin && (
+        <div className="space-y-1 border-t border-border pt-3">
+          <label className="flex items-center gap-2.5 py-1 text-sm">
+            <Checkbox
+              name="instantApprove"
+              checked={instantApprove}
+              onCheckedChange={(v) => setInstantApprove(v === true)}
+            />
+            Approve and create immediately, skipping the review queue
+          </label>
+        </div>
+      )}
+
       {state.error && (
         <p role="alert" className="text-sm text-destructive">
           {state.error}
@@ -126,7 +148,7 @@ export function NewAgreementForm({ clientId, isReturning }: { clientId: number; 
       )}
 
       <Button type="submit" disabled={pending} className="w-full bg-brand text-brand-foreground hover:bg-brand/90">
-        {pending ? "Creating…" : "Create agreement"}
+        {pending ? "Submitting…" : instantApprove ? "Approve and create" : "Submit for review"}
       </Button>
     </form>
   );

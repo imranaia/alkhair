@@ -11,7 +11,7 @@ function money(n: string | number) {
 }
 
 export default async function NewLoanAgreementPage({ params }: { params: Promise<{ id: string }> }) {
-  const user = await requireModule("clients", "edit");
+  const user = await requireModule("loan_applications", "create");
   const { id } = await params;
   const clientId = Number(id);
   if (!Number.isInteger(clientId)) notFound();
@@ -45,7 +45,7 @@ export default async function NewLoanAgreementPage({ params }: { params: Promise
         </GlassPanel>
       ) : (
         <GlassPanel className="p-6">
-          <NewAgreementForm clientId={client.id} isReturning={isReturning} />
+          <NewAgreementForm clientId={client.id} isReturning={isReturning} isSuperAdmin={user.roleKey === "super_admin"} />
         </GlassPanel>
       )}
     </div>
