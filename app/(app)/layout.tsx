@@ -6,7 +6,16 @@ import { TourProvider } from "@/components/tour/TourProvider";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireActiveUser();
-  const [modules, profile] = await Promise.all([getSidebarModules(user.roleId), getUserProfile(user.userId)]);
+  const [dbModules, profile] = await Promise.all([getSidebarModules(user.roleId), getUserProfile(user.userId)]);
+
+  // The public landing page isn't a permissioned module in the database —
+  // it's the "/" route itself, view+edit gated by role_key directly (see
+  // app/page.tsx) — so give super_admin a way to actually find it instead
+  // of only being reachable by typing the URL.
+  const modules =
+    user.roleKey === "super_admin"
+      ? [{ key: "landing", label: "Landing Page", icon: "Globe", routePrefix: "/" }, ...dbModules]
+      : dbModules;
 
   return (
     <TourProvider username={user.username} modules={modules}>
