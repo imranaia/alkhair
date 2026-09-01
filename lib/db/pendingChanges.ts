@@ -118,18 +118,41 @@ export async function getCurrentClientTransactionRow(id: number) {
   return row ?? null;
 }
 
-export async function markApproved(id: number, reviewedBy: number) {
+// Atomically transitions a pending change to 'approved'/'rejected' only if
+// it's still 'pending' — a single UPDATE...WHERE...RETURNING is row-locked
+// by Postgres, so if two admins approve the same request within moments of
+// each other (or a double-click fires the action twice), only the first
+// actually matches the WHERE clause; the second gets zero rows back and
+// must treat it as already handled instead of re-applying the request.
+// Returns null when another request already claimed it.
+export async function claimPendingChangeApproval(id: number, reviewedBy: number) {
   const db = getDb();
-  await db
+  const [row] = await db
     .update(pendingChanges)
     .set({ status: "approved", reviewedBy, reviewedAt: new Date() })
-    .where(eq(pendingChanges.id, id));
+    .where(and(eq(pendingChanges.id, id), eq(pendingChanges.status, "pending")))
+    .returning();
+  return row ?? null;
 }
 
-export async function markRejected(id: number, reviewedBy: number, reviewNote?: string) {
+export async function claimPendingChangeRejection(id: number, reviewedBy: number, reviewNote?: string) {
+  const db = getDb();
+  const [row] = await db
+    .update(pendingChanges)
+    .set({ status: "rejected", reviewedBy, reviewedAt: new Date(), reviewNote })
+    .where(and(eq(pendingChanges.id, id), eq(pendingChanges.status, "pending")))
+    .returning();
+  return row ?? null;
+}
+
+// If work that has to happen *after* a successful claim (e.g. creating the
+// loan agreement it approves) fails partway through, put the request back
+// to 'pending' rather than leaving it stuck 'approved' with nothing to show
+// for it — the admin can just retry instead of the request silently vanishing.
+export async function revertPendingChangeToPending(id: number) {
   const db = getDb();
   await db
     .update(pendingChanges)
-    .set({ status: "rejected", reviewedBy, reviewedAt: new Date(), reviewNote })
+    .set({ status: "pending", reviewedBy: null, reviewedAt: null })
     .where(eq(pendingChanges.id, id));
 }

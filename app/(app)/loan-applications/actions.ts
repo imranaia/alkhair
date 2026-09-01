@@ -3,7 +3,12 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { requireModule } from "@/lib/auth/session";
-import { getPendingChangeById, markApproved, markRejected } from "@/lib/db/pendingChanges";
+import {
+  getPendingChangeById,
+  claimPendingChangeApproval,
+  claimPendingChangeRejection,
+  revertPendingChangeToPending,
+} from "@/lib/db/pendingChanges";
 import { createLoanAgreement, OutstandingLoanError } from "@/lib/db/loanAgreements";
 import { logAction } from "@/lib/db/audit";
 
@@ -27,6 +32,9 @@ export async function approveLoanApplicationAction(
   if (!change || change.status !== "pending" || change.entityType !== "loan_agreement_application") {
     return { error: "This application is no longer pending." };
   }
+  if (user.roleKey !== "super_admin" && change.branchId !== user.branchId) {
+    return { error: "Not authorized for this branch." };
+  }
 
   const parsed = approveSchema.safeParse({
     principalAmount: formData.get("principalAmount"),
@@ -40,6 +48,15 @@ export async function approveLoanApplicationAction(
 
   const proposed = change.proposedChanges as { purpose?: string };
 
+  // Claim the request atomically before doing anything else — this is what
+  // stops two admins approving within moments of each other (or a
+  // double-click) from both passing the "still pending" check above and
+  // each creating their own loan agreement for the same application.
+  const claimed = await claimPendingChangeApproval(change.id, user.userId);
+  if (!claimed) {
+    return { error: "This application was already handled by someone else." };
+  }
+
   try {
     const agreement = await createLoanAgreement({
       clientId: change.entityId,
@@ -52,7 +69,6 @@ export async function approveLoanApplicationAction(
       createdBy: user.userId,
     });
 
-    await markApproved(change.id, user.userId);
     await logAction({
       userId: user.userId,
       branchId: change.branchId,
@@ -62,6 +78,10 @@ export async function approveLoanApplicationAction(
       after: { principalAmount: agreement.principalAmount, profitAmount: agreement.profitAmount, tenureWeeks: agreement.tenureWeeks },
     });
   } catch (err) {
+    // The claim above already flipped status to 'approved' — if creating the
+    // agreement itself then fails, put the request back to 'pending' rather
+    // than leaving it stuck approved with no agreement to show for it.
+    await revertPendingChangeToPending(change.id);
     if (err instanceof OutstandingLoanError) return { error: err.message };
     throw err;
   }
@@ -79,8 +99,15 @@ export async function rejectLoanApplicationAction(id: number, note?: string): Pr
   if (!change || change.status !== "pending" || change.entityType !== "loan_agreement_application") {
     return { error: "This application is no longer pending." };
   }
+  if (user.roleKey !== "super_admin" && change.branchId !== user.branchId) {
+    return { error: "Not authorized for this branch." };
+  }
 
-  await markRejected(change.id, user.userId, note);
+  const claimed = await claimPendingChangeRejection(change.id, user.userId, note);
+  if (!claimed) {
+    return { error: "This application was already handled by someone else." };
+  }
+
   await logAction({
     userId: user.userId,
     branchId: change.branchId,

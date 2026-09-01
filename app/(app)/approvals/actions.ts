@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireModule } from "@/lib/auth/session";
-import { getPendingChangeById, markApproved, markRejected } from "@/lib/db/pendingChanges";
+import { getPendingChangeById, claimPendingChangeApproval, claimPendingChangeRejection } from "@/lib/db/pendingChanges";
 import { updateClient } from "@/lib/db/clients";
 import { applyClientTransactionPatch } from "@/lib/db/transactions";
 import { logAction } from "@/lib/db/audit";
@@ -14,6 +14,14 @@ export async function approveChangeAction(id: number): Promise<{ error: string |
   if (!change || change.status !== "pending") {
     return { error: "This change is no longer pending." };
   }
+  if (user.roleKey !== "super_admin" && change.branchId !== user.branchId) {
+    return { error: "Not authorized for this branch." };
+  }
+
+  const claimed = await claimPendingChangeApproval(change.id, user.userId);
+  if (!claimed) {
+    return { error: "This change was already handled by someone else." };
+  }
 
   const patch = change.proposedChanges as Record<string, unknown>;
   if (change.entityType === "client") {
@@ -22,7 +30,6 @@ export async function approveChangeAction(id: number): Promise<{ error: string |
     await applyClientTransactionPatch(change.entityId, patch);
   }
 
-  await markApproved(change.id, user.userId);
   await logAction({
     userId: user.userId,
     branchId: change.branchId,
@@ -45,8 +52,15 @@ export async function rejectChangeAction(id: number, note?: string): Promise<{ e
   if (!change || change.status !== "pending") {
     return { error: "This change is no longer pending." };
   }
+  if (user.roleKey !== "super_admin" && change.branchId !== user.branchId) {
+    return { error: "Not authorized for this branch." };
+  }
 
-  await markRejected(change.id, user.userId, note);
+  const claimed = await claimPendingChangeRejection(change.id, user.userId, note);
+  if (!claimed) {
+    return { error: "This change was already handled by someone else." };
+  }
+
   await logAction({
     userId: user.userId,
     branchId: change.branchId,
