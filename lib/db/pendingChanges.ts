@@ -1,7 +1,7 @@
 import "server-only";
 import { getDb } from "./client";
 import { pendingChanges, clients, clientTransactions, users } from "./schema";
-import { eq, and, or, ne, asc } from "drizzle-orm";
+import { eq, and, or, ne, asc, sql } from "drizzle-orm";
 
 export type PendingEntityType = "client" | "client_transaction" | "loan_agreement_application";
 
@@ -85,6 +85,10 @@ export async function listPendingLoanApplications(branchId: number | null) {
       clientFullName: clients.fullName,
       clientPhone: clients.phone,
       clientBusinessType: clients.businessType,
+      // Whether this client has any loan agreement already — decides
+      // whether the approval dialog shows the returning-client-only
+      // checklist items (supervision report, principal amount reviewed).
+      isReturningClient: sql<boolean>`exists(select 1 from loan_agreements la where la.client_id = ${pendingChanges.entityId})`,
     })
     .from(pendingChanges)
     .innerJoin(users, eq(users.id, pendingChanges.requestedBy))

@@ -29,6 +29,8 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { Logo } from "@/components/brand/Logo";
 import { GlassPanel } from "@/components/layout/GlassPanel";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ALL_LOAN_PRODUCTS } from "@/lib/constants/loanProducts";
 import { CurrencyField } from "@/components/marketing/CurrencyField";
 import { MoneyFlowDiagram } from "@/components/marketing/MoneyFlowDiagram";
 import { Reveal } from "@/components/marketing/Reveal";
@@ -199,6 +201,28 @@ export default async function LandingPage() {
                   <p className="text-sm font-medium text-white">{p.label}</p>
                 </div>
               </div>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
+      {/* Our products - three cards, distinct from the bento/photo layouts above */}
+      <section className="space-y-5">
+        <h2 className="text-2xl font-semibold tracking-tight">Our products</h2>
+        <div className="grid gap-4 sm:grid-cols-3">
+          {ALL_LOAN_PRODUCTS.map((p, i) => (
+            <Reveal key={p.value} index={i}>
+              <GlassPanel className="flex h-full flex-col gap-2 p-5">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold">{p.label}</p>
+                  {"comingSoon" in p && p.comingSoon && (
+                    <Badge variant="secondary" className="shrink-0">
+                      Coming soon
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground">{p.description}</p>
+              </GlassPanel>
             </Reveal>
           ))}
         </div>

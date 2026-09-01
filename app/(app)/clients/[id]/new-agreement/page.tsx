@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { requireModule, isAdmin } from "@/lib/auth/session";
 import { getClientById } from "@/lib/db/clients";
-import { getActiveLoanSummary } from "@/lib/db/loanAgreements";
+import { getActiveLoanSummary, listLoanAgreementsForClient } from "@/lib/db/loanAgreements";
 import { GlassPanel } from "@/components/layout/GlassPanel";
 import { BackLink } from "@/components/layout/BackLink";
 import { NewAgreementForm } from "./NewAgreementForm";
@@ -24,6 +24,8 @@ export default async function NewLoanAgreementPage({ params }: { params: Promise
   if (!isAdmin(user.roleKey)) redirect(`/clients/${client.id}`);
 
   const loanSummary = await getActiveLoanSummary(clientId);
+  const loanHistory = await listLoanAgreementsForClient(clientId);
+  const isReturning = loanHistory.length > 0;
 
   return (
     <div className="mx-auto max-w-lg space-y-4">
@@ -43,7 +45,7 @@ export default async function NewLoanAgreementPage({ params }: { params: Promise
         </GlassPanel>
       ) : (
         <GlassPanel className="p-6">
-          <NewAgreementForm clientId={client.id} />
+          <NewAgreementForm clientId={client.id} isReturning={isReturning} />
         </GlassPanel>
       )}
     </div>

@@ -5,7 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { createClientAction, type ClientFormState } from "../actions";
+
+function CheckRow({ name, label }: { name: string; label: string }) {
+  return (
+    <label className="flex items-center gap-2.5 py-1 text-sm">
+      <Checkbox name={name} />
+      {label}
+    </label>
+  );
+}
 
 const initialState: ClientFormState = { error: null };
 
@@ -55,6 +65,11 @@ export function ClientForm({
       </div>
 
       <div className="space-y-1.5">
+        <Label htmlFor="nickname">Nickname (optional)</Label>
+        <Input id="nickname" name="nickname" />
+      </div>
+
+      <div className="space-y-1.5">
         <Label htmlFor="phone">Phone (optional)</Label>
         <Input id="phone" name="phone" />
       </div>
@@ -62,6 +77,17 @@ export function ClientForm({
       <div className="space-y-1.5">
         <Label htmlFor="address">Address (optional)</Label>
         <Input id="address" name="address" />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label htmlFor="nin">NIN (optional)</Label>
+          <Input id="nin" name="nin" />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="neighborRelativePhone">Neighbor&apos;s / relative&apos;s phone</Label>
+          <Input id="neighborRelativePhone" name="neighborRelativePhone" />
+        </div>
       </div>
 
       <div className="space-y-1.5">
@@ -77,6 +103,33 @@ export function ClientForm({
       <div className="space-y-1.5">
         <Label htmlFor="businessLocation">Business location (optional)</Label>
         <Input id="businessLocation" name="businessLocation" placeholder="e.g. Kubwa Village" />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label htmlFor="experienceYears">Experience in business (years)</Label>
+          <Input id="experienceYears" name="experienceYears" type="number" min="0" step="1" />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="customerType">Type of customer</Label>
+          <Select name="customerType" defaultValue="walk_in">
+            <SelectTrigger id="customerType" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="walk_in">Walk-in</SelectItem>
+              <SelectItem value="marketing">Marketing</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="space-y-1 border-t border-border pt-3">
+        <p className="mb-1 text-xs font-semibold text-muted-foreground uppercase">Shop verification</p>
+        <CheckRow name="shopOwner" label="Shop owner" />
+        <CheckRow name="rentingShop" label="Renting a shop" />
+        <CheckRow name="gpsPhotoVerified" label="GPS photo of shop verified" />
+        <CheckRow name="gpsTimeVerified" label="GPS time of shop verified" />
       </div>
 
       <div className="space-y-1.5">

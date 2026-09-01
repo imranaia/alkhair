@@ -8,7 +8,6 @@ import { getClientById } from "@/lib/db/clients";
 import { getClientLogin, createClientLogin, resetUserPassword } from "@/lib/db/users";
 import { createNotice } from "@/lib/db/clientNotices";
 import { createLoanAgreement, getActiveLoanSummary, OutstandingLoanError } from "@/lib/db/loanAgreements";
-import { createChecklist } from "@/lib/db/checklists";
 import { submitForApproval } from "@/lib/db/pendingChanges";
 import { logAction } from "@/lib/db/audit";
 
@@ -100,24 +99,36 @@ export async function createNoticeAction(_prevState: NoticeFormState, formData: 
 
 const agreementSchema = z.object({
   clientId: z.coerce.number().int().positive(),
+  product: z.enum(["biz", "partner"]),
   principalAmount: z.coerce.number().positive(),
   profitAmount: z.coerce.number().nonnegative(),
   tenureWeeks: z.coerce.number().int().positive().max(12),
   startDate: z.string().refine((v) => !Number.isNaN(Date.parse(v)), "Invalid date"),
   paymentDay: z.coerce.number().int().min(1).max(6),
+  amountApplied: z.coerce.number().nonnegative().optional(),
+  recommendedAmount: z.coerce.number().nonnegative().optional(),
+  applicationFormFilled: z.coerce.boolean(),
+  appraisalReportAttached: z.coerce.boolean(),
+  supervisionReportAttached: z.coerce.boolean().optional(),
+  loanAmountReviewed: z.coerce.boolean().optional(),
+  stockAvailabilityChecked: z.coerce.boolean(),
+  bankDetails: z.string().trim().max(500).optional(),
 });
 
 export type AgreementFormState = { error: string | null };
 
 export async function createLoanAgreementAction(_prevState: AgreementFormState, formData: FormData): Promise<AgreementFormState> {
   const user = await requireModule("clients", "edit");
+  // Empty optional number/text inputs arrive as "" — strip them so
+  // z.coerce.number().optional() doesn't coerce "" to 0 and fail elsewhere.
+  const raw = Object.fromEntries(Array.from(formData.entries()).filter(([, v]) => v !== ""));
   const parsed = agreementSchema.safeParse({
-    clientId: formData.get("clientId"),
-    principalAmount: formData.get("principalAmount"),
-    profitAmount: formData.get("profitAmount"),
-    tenureWeeks: formData.get("tenureWeeks"),
-    startDate: formData.get("startDate"),
-    paymentDay: formData.get("paymentDay"),
+    ...raw,
+    applicationFormFilled: formData.get("applicationFormFilled") === "on",
+    appraisalReportAttached: formData.get("appraisalReportAttached") === "on",
+    supervisionReportAttached: formData.get("supervisionReportAttached") === "on",
+    loanAmountReviewed: formData.get("loanAmountReviewed") === "on",
+    stockAvailabilityChecked: formData.get("stockAvailabilityChecked") === "on",
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
@@ -135,6 +146,15 @@ export async function createLoanAgreementAction(_prevState: AgreementFormState, 
       tenureWeeks: parsed.data.tenureWeeks,
       startDate: parsed.data.startDate,
       paymentDay: parsed.data.paymentDay,
+      product: parsed.data.product,
+      amountApplied: parsed.data.amountApplied,
+      recommendedAmount: parsed.data.recommendedAmount,
+      applicationFormFilled: parsed.data.applicationFormFilled,
+      appraisalReportAttached: parsed.data.appraisalReportAttached,
+      supervisionReportAttached: parsed.data.supervisionReportAttached,
+      loanAmountReviewed: parsed.data.loanAmountReviewed,
+      stockAvailabilityChecked: parsed.data.stockAvailabilityChecked,
+      bankDetails: parsed.data.bankDetails,
       createdBy: user.userId,
     });
   } catch (err) {
@@ -154,98 +174,6 @@ export async function createLoanAgreementAction(_prevState: AgreementFormState, 
   revalidatePath(`/clients/${client.id}`);
   revalidatePath("/transactions");
   redirect(`/clients/${client.id}`);
-}
-
-const checklistSchema = z.object({
-  clientId: z.coerce.number().int().positive(),
-  nickname: z.string().trim().max(120).optional(),
-  nin: z.string().trim().max(20).optional(),
-  neighborRelativePhone: z.string().trim().max(30).optional(),
-  shopOwner: z.coerce.boolean(),
-  rentingShop: z.coerce.boolean(),
-  gpsPhotoVerified: z.coerce.boolean(),
-  gpsTimeVerified: z.coerce.boolean(),
-  amountApplied: z.coerce.number().nonnegative().optional(),
-  recommendedAmount: z.coerce.number().nonnegative().optional(),
-  amountApproved: z.coerce.number().nonnegative().optional(),
-  clientType: z.enum(["new", "returning"]),
-  preferredTenureMonths: z.coerce.number().int().positive().optional(),
-  typeOfBusiness: z.string().trim().max(80).optional(),
-  experienceYears: z.coerce.number().int().nonnegative().optional(),
-  applicationFormFilled: z.coerce.boolean(),
-  customerType: z.enum(["walk_in", "marketing"]).optional(),
-  appraisalReportAttached: z.coerce.boolean(),
-  supervisionReportAttached: z.coerce.boolean().optional(),
-  loanAmountReviewed: z.coerce.boolean().optional(),
-  stockAvailabilityChecked: z.coerce.boolean(),
-  bankDetails: z.string().trim().max(500).optional(),
-  officerName: z.string().trim().min(1).max(120),
-});
-
-export type ChecklistFormState = { error: string | null };
-
-export async function createChecklistAction(_prevState: ChecklistFormState, formData: FormData): Promise<ChecklistFormState> {
-  const user = await requireModule("clients", "edit");
-  // Empty optional text/number inputs arrive as "" — strip them so
-  // z.coerce.number().optional() doesn't coerce "" to 0 and fail .positive().
-  const raw = Object.fromEntries(Array.from(formData.entries()).filter(([, v]) => v !== ""));
-  const parsed = checklistSchema.safeParse({
-    ...raw,
-    shopOwner: formData.get("shopOwner") === "on",
-    rentingShop: formData.get("rentingShop") === "on",
-    gpsPhotoVerified: formData.get("gpsPhotoVerified") === "on",
-    gpsTimeVerified: formData.get("gpsTimeVerified") === "on",
-    applicationFormFilled: formData.get("applicationFormFilled") === "on",
-    appraisalReportAttached: formData.get("appraisalReportAttached") === "on",
-    supervisionReportAttached: formData.get("supervisionReportAttached") === "on",
-    loanAmountReviewed: formData.get("loanAmountReviewed") === "on",
-    stockAvailabilityChecked: formData.get("stockAvailabilityChecked") === "on",
-  });
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
-  }
-
-  const client = await assertClientInScope(parsed.data.clientId, user.branchId, user.roleKey);
-  const d = parsed.data;
-
-  await createChecklist({
-    clientId: client.id,
-    branchId: client.branchId,
-    nickname: d.nickname || undefined,
-    nin: d.nin || undefined,
-    neighborRelativePhone: d.neighborRelativePhone || undefined,
-    shopOwner: d.shopOwner,
-    rentingShop: d.rentingShop,
-    gpsPhotoVerified: d.gpsPhotoVerified,
-    gpsTimeVerified: d.gpsTimeVerified,
-    amountApplied: d.amountApplied?.toFixed(2),
-    recommendedAmount: d.recommendedAmount?.toFixed(2),
-    amountApproved: d.amountApproved?.toFixed(2),
-    clientType: d.clientType,
-    preferredTenureMonths: d.preferredTenureMonths,
-    typeOfBusiness: d.typeOfBusiness || undefined,
-    experienceYears: d.experienceYears,
-    applicationFormFilled: d.applicationFormFilled,
-    customerType: d.customerType,
-    appraisalReportAttached: d.appraisalReportAttached,
-    supervisionReportAttached: d.clientType === "returning" ? d.supervisionReportAttached ?? false : undefined,
-    loanAmountReviewed: d.clientType === "returning" ? d.loanAmountReviewed ?? false : undefined,
-    stockAvailabilityChecked: d.stockAvailabilityChecked,
-    bankDetails: d.bankDetails || undefined,
-    officerName: d.officerName,
-    recordedBy: user.userId,
-  });
-
-  await logAction({
-    userId: user.userId,
-    branchId: client.branchId,
-    action: "client.checklist_recorded",
-    entityType: "client",
-    entityId: client.id,
-  });
-
-  revalidatePath(`/clients/${client.id}`);
-  return { error: null };
 }
 
 const applyLoanSchema = z.object({

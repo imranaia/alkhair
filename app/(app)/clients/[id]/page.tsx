@@ -11,11 +11,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RecordBox, EmptyBox } from "@/components/ui/record-box";
 import { PAYMENT_DAYS } from "@/lib/constants/paymentDays";
+import { ALL_LOAN_PRODUCTS } from "@/lib/constants/loanProducts";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { ClientStatusControl } from "./ClientStatusControl";
 import { RecordMaturityDialog } from "./RecordMaturityDialog";
 import { ApplyLoanDialog } from "./ApplyLoanDialog";
-import { ChecklistDialog } from "./ChecklistDialog";
 import { PortalPanel } from "./PortalPanel";
 
 function CheckStat({ label, done }: { label: string; done: boolean }) {
@@ -70,7 +70,6 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           {canEdit && <ClientStatusControl clientId={client.id} status={client.status} />}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {canEdit && <ChecklistDialog clientId={client.id} />}
           {canEdit && admin && !eligibleForNewPrincipal && (
             <Button asChild size="sm" className="bg-brand text-brand-foreground hover:bg-brand/90">
               <Link href={`/clients/${client.id}/new-agreement`}>New principal agreement</Link>
@@ -121,6 +120,40 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         <div className="min-w-0">
           <p className="text-xs text-muted-foreground">Business location</p>
           <p className="font-medium break-words">{client.businessLocation || "—"}</p>
+        </div>
+      </GlassPanel>
+
+      <GlassPanel className="space-y-3 p-6">
+        <h2 className="text-sm font-semibold text-muted-foreground">KYC</h2>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">Nickname</p>
+            <p className="font-medium break-words">{client.nickname || "—"}</p>
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">NIN</p>
+            <p className="font-medium break-words">{client.nin || "—"}</p>
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">Neighbor&apos;s / relative&apos;s phone</p>
+            <p className="font-medium break-words">{client.neighborRelativePhone || "—"}</p>
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">Experience in business</p>
+            <p className="font-medium break-words">
+              {client.experienceYears !== null ? `${client.experienceYears} yrs` : "—"}
+            </p>
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">Type of customer</p>
+            <p className="font-medium capitalize break-words">{client.customerType?.replace("_", "-") || "—"}</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 border-t border-border pt-3 sm:grid-cols-4">
+          <CheckStat label="Shop owner" done={!!client.shopOwner} />
+          <CheckStat label="Renting shop" done={!!client.rentingShop} />
+          <CheckStat label="GPS photo verified" done={!!client.gpsPhotoVerified} />
+          <CheckStat label="GPS time verified" done={!!client.gpsTimeVerified} />
         </div>
       </GlassPanel>
 
@@ -198,6 +231,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                 </>
               }
               fields={[
+                { label: "Product", value: ALL_LOAN_PRODUCTS.find((p) => p.value === a.product)?.label ?? a.product },
                 { label: "Principal", value: money(a.principalAmount), align: "right" },
                 { label: "Profit", value: money(a.profitAmount), align: "right" },
                 { label: "Tenure", value: `${a.tenureWeeks} wks` },

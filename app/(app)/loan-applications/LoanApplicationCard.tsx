@@ -9,6 +9,7 @@ export type LoanApplicationRow = {
   clientCode: string;
   clientPhone: string | null;
   clientBusinessType: string | null;
+  isReturningClient: boolean;
   proposedChanges: unknown;
 };
 
@@ -60,6 +61,7 @@ export function LoanApplicationCard({ row }: { row: LoanApplicationRow }) {
           id={row.id}
           amountRequested={amountRequested}
           tenureWeeksRequested={proposed?.tenureWeeksRequested ?? null}
+          isReturningClient={row.isReturningClient}
         />
       </div>
     </GlassPanel>

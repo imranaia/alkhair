@@ -55,6 +55,15 @@ export async function getClientById(id: number) {
       enrollmentDate: clients.enrollmentDate,
       loanCollectorId: clients.loanCollectorId,
       loanCollectorName: users.fullName,
+      nickname: clients.nickname,
+      nin: clients.nin,
+      neighborRelativePhone: clients.neighborRelativePhone,
+      shopOwner: clients.shopOwner,
+      rentingShop: clients.rentingShop,
+      gpsPhotoVerified: clients.gpsPhotoVerified,
+      gpsTimeVerified: clients.gpsTimeVerified,
+      experienceYears: clients.experienceYears,
+      customerType: clients.customerType,
     })
     .from(clients)
     .innerJoin(branches, eq(branches.id, clients.branchId))
@@ -168,6 +177,15 @@ export async function createClient(data: {
   loanCollectorId?: number;
   openingSavings?: string;
   createdByUserId: number;
+  nickname?: string;
+  nin?: string;
+  neighborRelativePhone?: string;
+  shopOwner?: boolean;
+  rentingShop?: boolean;
+  gpsPhotoVerified?: boolean;
+  gpsTimeVerified?: boolean;
+  experienceYears?: number;
+  customerType?: "walk_in" | "marketing";
 }) {
   const db = getDb();
   const branch = await getBranch(data.branchId);
@@ -192,6 +210,15 @@ export async function createClient(data: {
         enrollmentDay,
         enrollmentDate: data.enrollmentDate.toISOString().slice(0, 10),
         loanCollectorId: data.loanCollectorId,
+        nickname: data.nickname,
+        nin: data.nin,
+        neighborRelativePhone: data.neighborRelativePhone,
+        shopOwner: data.shopOwner,
+        rentingShop: data.rentingShop,
+        gpsPhotoVerified: data.gpsPhotoVerified,
+        gpsTimeVerified: data.gpsTimeVerified,
+        experienceYears: data.experienceYears,
+        customerType: data.customerType,
       })
       .returning();
 

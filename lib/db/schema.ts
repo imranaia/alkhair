@@ -178,6 +178,18 @@ export const clients = pgTable(
     // Dept Report" (Project + Location columns), captured at enrollment.
     businessType: varchar("business_type", { length: 80 }),
     businessLocation: varchar("business_location", { length: 120 }),
+    // KYC fields from the AMC Pre-Disbursement Checklist that belong at
+    // enrollment, not per loan — the loan-specific half of that same
+    // checklist lives on loan_agreements instead (see below).
+    nickname: varchar("nickname", { length: 120 }),
+    nin: varchar("nin", { length: 20 }),
+    neighborRelativePhone: varchar("neighbor_relative_phone", { length: 30 }),
+    shopOwner: boolean("shop_owner"),
+    rentingShop: boolean("renting_shop"),
+    gpsPhotoVerified: boolean("gps_photo_verified"),
+    gpsTimeVerified: boolean("gps_time_verified"),
+    experienceYears: integer("experience_years"),
+    customerType: varchar("customer_type", { length: 20 }), // walk_in | marketing
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -268,6 +280,23 @@ export const loanAgreements = pgTable(
     // comes from an approved loan application; null for direct admin-created
     // agreements that skipped the application step.
     purpose: text("purpose"),
+    // Which Alkhair product this loan is filed under — a classification tag
+    // for reporting, not a different repayment structure; every product
+    // still uses the same fixed principal+profit weekly schedule above.
+    product: varchar("product", { length: 20 }).notNull(), // biz | partner | lease
+    // Loan-specific half of the AMC Pre-Disbursement Checklist — the KYC
+    // half lives on clients instead (see above). Filled in by whoever
+    // creates the agreement (direct admin create, or an admin approving an
+    // application), not the requesting officer.
+    amountApplied: numeric("amount_applied", { precision: 14, scale: 2 }),
+    recommendedAmount: numeric("recommended_amount", { precision: 14, scale: 2 }),
+    applicationFormFilled: boolean("application_form_filled").notNull().default(false),
+    appraisalReportAttached: boolean("appraisal_report_attached").notNull().default(false),
+    // Returning-client-only checks — null for a client's first loan.
+    supervisionReportAttached: boolean("supervision_report_attached"),
+    loanAmountReviewed: boolean("loan_amount_reviewed"),
+    stockAvailabilityChecked: boolean("stock_availability_checked").notNull().default(false),
+    bankDetails: text("bank_details"),
     createdBy: integer("created_by")
       .notNull()
       .references(() => users.id),

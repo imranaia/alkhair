@@ -20,6 +20,8 @@ export async function assertNoOutstandingLoan(clientId: number) {
   }
 }
 
+export type LoanProduct = "biz" | "partner" | "lease";
+
 export async function createLoanAgreement(data: {
   clientId: number;
   branchId: number;
@@ -28,7 +30,16 @@ export async function createLoanAgreement(data: {
   tenureWeeks: number;
   startDate: string;
   paymentDay: number;
+  product: LoanProduct;
   purpose?: string;
+  amountApplied?: number;
+  recommendedAmount?: number;
+  applicationFormFilled?: boolean;
+  appraisalReportAttached?: boolean;
+  supervisionReportAttached?: boolean;
+  loanAmountReviewed?: boolean;
+  stockAvailabilityChecked?: boolean;
+  bankDetails?: string;
   createdBy: number;
 }) {
   await assertNoOutstandingLoan(data.clientId);
@@ -71,6 +82,15 @@ export async function createLoanAgreement(data: {
         paymentDay: data.paymentDay,
         openingRecoveryOffset,
         purpose: data.purpose,
+        product: data.product,
+        amountApplied: data.amountApplied?.toFixed(2),
+        recommendedAmount: data.recommendedAmount?.toFixed(2),
+        applicationFormFilled: data.applicationFormFilled ?? false,
+        appraisalReportAttached: data.appraisalReportAttached ?? false,
+        supervisionReportAttached: data.supervisionReportAttached,
+        loanAmountReviewed: data.loanAmountReviewed,
+        stockAvailabilityChecked: data.stockAvailabilityChecked ?? false,
+        bankDetails: data.bankDetails,
         createdBy: data.createdBy,
       })
       .returning();

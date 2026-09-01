@@ -13,11 +13,20 @@ import { createLoanAgreement, OutstandingLoanError } from "@/lib/db/loanAgreemen
 import { logAction } from "@/lib/db/audit";
 
 const approveSchema = z.object({
+  product: z.enum(["biz", "partner"]),
   principalAmount: z.coerce.number().positive(),
   profitAmount: z.coerce.number().nonnegative(),
   tenureWeeks: z.coerce.number().int().positive().max(12),
   startDate: z.string().refine((v) => !Number.isNaN(Date.parse(v)), "Invalid date"),
   paymentDay: z.coerce.number().int().min(1).max(6),
+  amountApplied: z.coerce.number().nonnegative().optional(),
+  recommendedAmount: z.coerce.number().nonnegative().optional(),
+  bankDetails: z.string().trim().max(500).optional(),
+  applicationFormFilled: z.coerce.boolean(),
+  appraisalReportAttached: z.coerce.boolean(),
+  supervisionReportAttached: z.coerce.boolean().optional(),
+  loanAmountReviewed: z.coerce.boolean().optional(),
+  stockAvailabilityChecked: z.coerce.boolean(),
 });
 
 export type LoanApplicationActionState = { error: string | null };
@@ -37,12 +46,14 @@ export async function approveLoanApplicationAction(
     return { error: "Not authorized for this branch." };
   }
 
+  const raw = Object.fromEntries(Array.from(formData.entries()).filter(([, v]) => v !== ""));
   const parsed = approveSchema.safeParse({
-    principalAmount: formData.get("principalAmount"),
-    profitAmount: formData.get("profitAmount"),
-    tenureWeeks: formData.get("tenureWeeks"),
-    startDate: formData.get("startDate"),
-    paymentDay: formData.get("paymentDay"),
+    ...raw,
+    applicationFormFilled: formData.get("applicationFormFilled") === "on",
+    appraisalReportAttached: formData.get("appraisalReportAttached") === "on",
+    supervisionReportAttached: formData.get("supervisionReportAttached") === "on",
+    loanAmountReviewed: formData.get("loanAmountReviewed") === "on",
+    stockAvailabilityChecked: formData.get("stockAvailabilityChecked") === "on",
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
@@ -69,6 +80,15 @@ export async function approveLoanApplicationAction(
       startDate: parsed.data.startDate,
       paymentDay: parsed.data.paymentDay,
       purpose: proposed?.purpose || undefined,
+      product: parsed.data.product,
+      amountApplied: parsed.data.amountApplied,
+      recommendedAmount: parsed.data.recommendedAmount,
+      applicationFormFilled: parsed.data.applicationFormFilled,
+      appraisalReportAttached: parsed.data.appraisalReportAttached,
+      supervisionReportAttached: parsed.data.supervisionReportAttached,
+      loanAmountReviewed: parsed.data.loanAmountReviewed,
+      stockAvailabilityChecked: parsed.data.stockAvailabilityChecked,
+      bankDetails: parsed.data.bankDetails,
       createdBy: user.userId,
     });
 

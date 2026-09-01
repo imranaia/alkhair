@@ -29,6 +29,13 @@
       "when": 1788272549648,
       "tag": "0003_tighten_loan_id_payment_day_drop_client_payment_day",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788278319246,
+      "tag": "0004_amc_checklist_fields_and_loan_product",
+      "breakpoints": true
     }
   ]
 }

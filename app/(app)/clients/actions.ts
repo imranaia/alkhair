@@ -20,6 +20,15 @@ const clientSchema = z.object({
   branchId: z.coerce.number().int().positive().optional(),
   loanCollectorId: z.coerce.number().int().positive().optional(),
   openingSavings: z.coerce.number().nonnegative().optional(),
+  nickname: z.string().trim().max(120).optional().or(z.literal("")),
+  nin: z.string().trim().max(20).optional().or(z.literal("")),
+  neighborRelativePhone: z.string().trim().max(30).optional().or(z.literal("")),
+  shopOwner: z.coerce.boolean(),
+  rentingShop: z.coerce.boolean(),
+  gpsPhotoVerified: z.coerce.boolean(),
+  gpsTimeVerified: z.coerce.boolean(),
+  experienceYears: z.coerce.number().int().nonnegative().optional(),
+  customerType: z.enum(["walk_in", "marketing"]).optional(),
 });
 
 export type ClientFormState = { error: string | null; submitted?: boolean };
@@ -27,17 +36,13 @@ export type ClientFormState = { error: string | null; submitted?: boolean };
 export async function createClientAction(_prevState: ClientFormState, formData: FormData): Promise<ClientFormState> {
   const user = await requireModule("clients", "create");
 
+  const raw = Object.fromEntries(Array.from(formData.entries()).filter(([, v]) => v !== ""));
   const parsed = clientSchema.safeParse({
-    fullName: formData.get("fullName"),
-    phone: formData.get("phone"),
-    address: formData.get("address"),
-    groupName: formData.get("groupName"),
-    businessType: formData.get("businessType"),
-    businessLocation: formData.get("businessLocation"),
-    enrollmentDate: formData.get("enrollmentDate"),
-    branchId: formData.get("branchId") || undefined,
-    loanCollectorId: formData.get("loanCollectorId") || undefined,
-    openingSavings: formData.get("openingSavings") || undefined,
+    ...raw,
+    shopOwner: formData.get("shopOwner") === "on",
+    rentingShop: formData.get("rentingShop") === "on",
+    gpsPhotoVerified: formData.get("gpsPhotoVerified") === "on",
+    gpsTimeVerified: formData.get("gpsTimeVerified") === "on",
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
@@ -60,6 +65,15 @@ export async function createClientAction(_prevState: ClientFormState, formData: 
     loanCollectorId: parsed.data.loanCollectorId,
     openingSavings: parsed.data.openingSavings?.toString(),
     createdByUserId: user.userId,
+    nickname: parsed.data.nickname || undefined,
+    nin: parsed.data.nin || undefined,
+    neighborRelativePhone: parsed.data.neighborRelativePhone || undefined,
+    shopOwner: parsed.data.shopOwner,
+    rentingShop: parsed.data.rentingShop,
+    gpsPhotoVerified: parsed.data.gpsPhotoVerified,
+    gpsTimeVerified: parsed.data.gpsTimeVerified,
+    experienceYears: parsed.data.experienceYears,
+    customerType: parsed.data.customerType,
   });
 
   await logAction({
