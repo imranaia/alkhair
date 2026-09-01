@@ -102,7 +102,7 @@ const agreementSchema = z.object({
   clientId: z.coerce.number().int().positive(),
   principalAmount: z.coerce.number().positive(),
   profitAmount: z.coerce.number().nonnegative(),
-  tenureWeeks: z.coerce.number().int().positive().max(104),
+  tenureWeeks: z.coerce.number().int().positive().max(12),
   startDate: z.string().refine((v) => !Number.isNaN(Date.parse(v)), "Invalid date"),
   paymentDay: z.coerce.number().int().min(1).max(6),
 });
@@ -252,7 +252,7 @@ const applyLoanSchema = z.object({
   clientId: z.coerce.number().int().positive(),
   amountRequested: z.coerce.number().positive(),
   purpose: z.string().trim().min(1).max(500),
-  tenureWeeksRequested: z.coerce.number().int().positive().max(104).optional(),
+  tenureWeeksRequested: z.coerce.number().int().positive().max(12).optional(),
 });
 
 export type ApplyLoanState = { error: string | null };

@@ -15,7 +15,7 @@ import { logAction } from "@/lib/db/audit";
 const approveSchema = z.object({
   principalAmount: z.coerce.number().positive(),
   profitAmount: z.coerce.number().nonnegative(),
-  tenureWeeks: z.coerce.number().int().positive().max(104),
+  tenureWeeks: z.coerce.number().int().positive().max(12),
   startDate: z.string().refine((v) => !Number.isNaN(Date.parse(v)), "Invalid date"),
   paymentDay: z.coerce.number().int().min(1).max(6),
 });

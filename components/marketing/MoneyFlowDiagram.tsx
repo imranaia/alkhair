@@ -1,13 +1,13 @@
 "use client";
 
 import { useReducedMotion } from "motion/react";
-import { FileCheck, Wallet, Repeat } from "lucide-react";
+import { Smartphone, HandCoins, Landmark } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const STOPS = [
-  { icon: FileCheck, label: "You apply", detail: "Tell us about your business and how much you need." },
-  { icon: Wallet, label: "Cash reaches you", detail: "Approved principal is paid out, no collateral held." },
-  { icon: Repeat, label: "You repay weekly", detail: "Small, predictable installments as your business earns." },
+  { icon: Smartphone, label: "You apply", detail: "Tell us about your business and how much you need, right from your phone." },
+  { icon: HandCoins, label: "Cash reaches you", detail: "Approved principal is paid directly into your hands, no collateral held." },
+  { icon: Landmark, label: "You repay weekly", detail: "Small, predictable installments as your business earns, paid in at your branch." },
 ];
 
 const DESKTOP_PATH = "M90,110 C230,40 310,40 450,60 C590,80 670,180 810,150";

@@ -64,7 +64,8 @@ export function ApplyLoanDialog({
 
           <div className="space-y-1.5">
             <Label htmlFor="tenureWeeksRequested">Preferred tenure (weeks)</Label>
-            <Input id="tenureWeeksRequested" name="tenureWeeksRequested" type="number" min="1" step="1" />
+            <Input id="tenureWeeksRequested" name="tenureWeeksRequested" type="number" min="1" max="12" step="1" />
+            <p className="text-xs text-muted-foreground">Up to 12 weeks maximum.</p>
           </div>
 
           <div className="space-y-1.5">

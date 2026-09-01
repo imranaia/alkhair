@@ -20,8 +20,10 @@ import {
   IdCard,
   UserCheck,
   MapPin,
+  Briefcase,
   ArrowRight,
   Phone,
+  Mail,
 } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/session";
 import { Logo } from "@/components/brand/Logo";
@@ -33,6 +35,7 @@ import { Reveal } from "@/components/marketing/Reveal";
 
 // TODO: demo placeholder — swap for the real branch line once provided.
 const CONTACT_PHONE = "+234 800 000 0000";
+const CONTACT_EMAIL = "alkhairmicrocredit@gmail.com";
 
 // Tasteful stock photography as a placeholder until real branch/client photos
 // are provided (all Unsplash License, free for commercial use).
@@ -68,14 +71,19 @@ const TRADES = [
 
 const FEATURES = [
   { label: "Fast processing and approval", icon: Zap },
-  { label: "Competitive, transparent rates", icon: BadgePercent },
-  { label: "No collateral required", icon: Handshake },
+  { label: "Ethical financing — profit only, never interest", icon: BadgePercent },
+  { label: "Flexible collateral options", icon: Handshake },
   { label: "Flexible weekly repayment", icon: CalendarClock },
   { label: "Friendly, responsive support", icon: MessageCircle },
   { label: "Simple, clear terms", icon: FileCheck },
 ];
 
 const REQUIREMENTS = [
+  {
+    label: "Your own business",
+    detail: "An existing trade or service you run — financing is built around businesses already up and running.",
+    icon: Briefcase,
+  },
   { label: "A valid NIN", detail: "National Identification Number on record before approval.", icon: IdCard },
   {
     label: "A guarantor with their own business or work",
@@ -119,8 +127,8 @@ export default async function LandingPage() {
               Financing for the business you already run.
             </h1>
             <p className="max-w-[46ch] text-base text-muted-foreground">
-              Fast approval, no collateral, and transparent profit terms, built for market traders, shop owners, and
-              service providers.
+              Fast approval, flexible collateral, and transparent profit terms — no interest, ever — built for market
+              traders, shop owners, and service providers.
             </p>
             <div className="flex items-center gap-3 pt-2">
               <Button asChild size="lg" className="gap-1.5 bg-brand text-brand-foreground hover:bg-brand/90">
@@ -139,8 +147,8 @@ export default async function LandingPage() {
               <p className="text-xs text-muted-foreground">trades financed</p>
             </div>
             <div>
-              <p className="text-2xl font-semibold text-brand">0</p>
-              <p className="text-xs text-muted-foreground">collateral required</p>
+              <p className="text-2xl font-semibold text-brand">Flexible</p>
+              <p className="text-xs text-muted-foreground">collateral options</p>
             </div>
             <div>
               <p className="text-2xl font-semibold text-brand">5km</p>
@@ -161,7 +169,7 @@ export default async function LandingPage() {
         <h2 className="text-2xl font-semibold tracking-tight">Who we finance</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {TRADES.map((t, i) => (
-            <Reveal key={t.label} index={i} className={i === 0 ? "sm:col-span-2" : ""}>
+            <Reveal key={t.label} index={i}>
               <div className="glass-panel flex h-full items-center gap-3 p-4 transition-transform duration-200 hover:-translate-y-1">
                 <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand/15 text-brand-foreground text-foreground">
                   <t.icon className="size-4.5" />
@@ -248,12 +256,18 @@ export default async function LandingPage() {
         </GlassPanel>
       </section>
 
-      <footer className="flex flex-col items-center gap-2 border-t border-border pt-6 text-center text-xs text-muted-foreground sm:flex-row sm:justify-between sm:text-left">
+      <footer className="flex flex-col items-center gap-3 border-t border-border pt-6 text-center text-xs text-muted-foreground sm:flex-row sm:justify-between sm:text-left">
         <p>Alkhair Microcredit Limited &middot; RC: 9640793</p>
-        <a href={`tel:${CONTACT_PHONE.replace(/\s+/g, "")}`} className="flex items-center gap-1.5 hover:text-foreground">
-          <Phone className="size-3.5" />
-          {CONTACT_PHONE}
-        </a>
+        <div className="flex flex-col items-center gap-1.5 sm:flex-row sm:gap-4">
+          <a href={`tel:${CONTACT_PHONE.replace(/\s+/g, "")}`} className="flex items-center gap-1.5 hover:text-foreground">
+            <Phone className="size-3.5" />
+            {CONTACT_PHONE}
+          </a>
+          <a href={`mailto:${CONTACT_EMAIL}`} className="flex items-center gap-1.5 hover:text-foreground">
+            <Mail className="size-3.5" />
+            {CONTACT_EMAIL}
+          </a>
+        </div>
         <p>&copy; {new Date().getFullYear()} Alkhair Microcredit Limited. All rights reserved.</p>
       </footer>
     </div>

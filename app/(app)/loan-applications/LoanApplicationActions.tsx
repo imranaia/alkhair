@@ -111,10 +111,12 @@ export function LoanApplicationActions({
                 name="tenureWeeks"
                 type="number"
                 min="1"
+                max="12"
                 step="1"
                 defaultValue={tenureWeeksRequested ?? undefined}
                 required
               />
+              <p className="text-xs text-muted-foreground">Up to 12 weeks maximum.</p>
             </div>
 
             <div className="space-y-1.5">

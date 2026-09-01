@@ -33,7 +33,8 @@ export function NewAgreementForm({ clientId }: { clientId: number }) {
 
       <div className="space-y-1.5">
         <Label htmlFor="tenureWeeks">Tenure (weeks)</Label>
-        <Input id="tenureWeeks" name="tenureWeeks" type="number" min="1" step="1" required />
+        <Input id="tenureWeeks" name="tenureWeeks" type="number" min="1" max="12" step="1" required />
+        <p className="text-xs text-muted-foreground">Up to 12 weeks maximum.</p>
       </div>
 
       <div className="space-y-1.5">
