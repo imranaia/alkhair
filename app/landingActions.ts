@@ -21,14 +21,32 @@ async function requireSuperAdmin() {
 }
 
 const requirementSchema = z.object({ label: z.string().trim().min(1).max(120), detail: z.string().trim().min(1).max(300) });
+const moneyFlowStepSchema = z.object({ label: z.string().trim().min(1).max(60), detail: z.string().trim().min(1).max(200) });
+const productSchema = z.object({
+  label: z.string().trim().min(1).max(60),
+  description: z.string().trim().min(1).max(300),
+  comingSoon: z.boolean(),
+});
 
 const fieldSchemas = {
   heroHeadline: z.string().trim().min(1).max(200),
   heroSubheadline: z.string().trim().min(1).max(400),
   contactPhone: z.string().trim().min(1).max(40),
   contactEmail: z.string().trim().email().max(120),
-  featureLabels: z.array(z.string().trim().min(1).max(120)).length(6),
-  requirements: z.array(requirementSchema).length(4),
+  moneyFlowHeading: z.string().trim().min(1).max(80),
+  // Fixed at 3 — tied one-to-one to the icons and animated path.
+  moneyFlowSteps: z.array(moneyFlowStepSchema).length(3),
+  tradesHeading: z.string().trim().min(1).max(80),
+  trades: z.array(z.string().trim().min(1).max(60)).min(1).max(30),
+  peopleHeading: z.string().trim().min(1).max(80),
+  // Fixed at 3 — tied one-to-one to the placeholder photos.
+  peopleLabels: z.array(z.string().trim().min(1).max(60)).length(3),
+  productsHeading: z.string().trim().min(1).max(80),
+  products: z.array(productSchema).min(1).max(10),
+  featuresHeading: z.string().trim().min(1).max(80),
+  featureLabels: z.array(z.string().trim().min(1).max(120)).min(1).max(20),
+  requirementsHeading: z.string().trim().min(1).max(80),
+  requirements: z.array(requirementSchema).min(1).max(20),
   missionHeading: z.string().trim().min(1).max(200),
   missionBody: z.string().trim().min(1).max(500),
 } as const;

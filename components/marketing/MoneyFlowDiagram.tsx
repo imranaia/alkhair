@@ -3,23 +3,30 @@
 import { useReducedMotion } from "motion/react";
 import { Smartphone, HandCoins, Landmark } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { EditableText } from "@/components/marketing/EditableText";
 
-const STOPS = [
-  { icon: Smartphone, label: "You apply", detail: "Tell us about your business and how much you need, right from your phone." },
-  { icon: HandCoins, label: "Cash reaches you", detail: "Approved principal is paid directly into your hands, no collateral held." },
-  { icon: Landmark, label: "You repay weekly", detail: "Small, predictable installments as your business earns, paid in at your branch." },
-];
+// Icons are fixed (there's no icon picker in the CMS) — the label/detail
+// text for each stop comes from siteContent and is editable there.
+const STOP_ICONS = [Smartphone, HandCoins, Landmark];
 
 const DESKTOP_PATH = "M90,110 C230,40 310,40 450,60 C590,80 670,180 810,150";
 const MOBILE_PATH = "M110,60 C40,180 40,240 110,320 C180,400 180,480 110,560";
 
 // The narrative device for "how the money moves": one coin travels the full
-// apply -> disburse -> repay loop on a native SVG path (no JS animation
-// loop), so it stays cheap even with the loop running indefinitely. 9s (up
-// from an earlier 4s) so it reads as a deliberate journey between the three
-// stops rather than a blur.
-export function MoneyFlowDiagram() {
+// apply -> disburse -> repay path and back again on a native SVG path (no JS
+// animation loop, so it stays cheap even running indefinitely) — a there-
+// and-back journey rather than snapping back to the start each lap.
+export function MoneyFlowDiagram({
+  steps,
+  editMode,
+  onSaveStep,
+}: {
+  steps: { label: string; detail: string }[];
+  editMode?: boolean;
+  onSaveStep?: (index: number, key: "label" | "detail") => (next: string) => Promise<{ error: string | null }>;
+}) {
   const reduce = useReducedMotion();
+  const stops = STOP_ICONS.map((icon, i) => ({ icon, label: steps[i]?.label ?? "", detail: steps[i]?.detail ?? "" }));
 
   return (
     <div className="relative">
@@ -43,9 +50,9 @@ export function MoneyFlowDiagram() {
       </svg>
 
       <div className="relative flex flex-col gap-10 md:flex-row md:items-start md:justify-between md:gap-6">
-        {STOPS.map((stop, i) => (
+        {stops.map((stop, i) => (
           <div
-            key={stop.label}
+            key={i}
             className={cn(
               "flex flex-col items-center gap-3 text-center md:w-64",
               i === 1 && "md:mt-8",
@@ -61,8 +68,23 @@ export function MoneyFlowDiagram() {
             >
               <stop.icon className="size-6 text-[oklch(0.28_0.04_75)]" strokeWidth={1.75} />
             </div>
-            <p className="text-sm font-semibold">{stop.label}</p>
-            <p className="max-w-[26ch] text-xs text-muted-foreground">{stop.detail}</p>
+            {editMode && onSaveStep ? (
+              <>
+                <EditableText value={stop.label} editMode={editMode} onSave={onSaveStep(i, "label")} className="text-sm font-semibold" />
+                <EditableText
+                  value={stop.detail}
+                  editMode={editMode}
+                  multiline
+                  onSave={onSaveStep(i, "detail")}
+                  className="max-w-[26ch] text-xs text-muted-foreground"
+                />
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-semibold">{stop.label}</p>
+                <p className="max-w-[26ch] text-xs text-muted-foreground">{stop.detail}</p>
+              </>
+            )}
           </div>
         ))}
       </div>
@@ -103,7 +125,9 @@ function Coin({ id, pathId, reduce, startX, startY }: { id: string; pathId: stri
     <>
       {defs}
       <circle r={10} fill={`url(#${gradientId})`} filter={`url(#${shadowId})`} stroke="oklch(0.98 0.02 90)" strokeWidth={1}>
-        <animateMotion dur="9s" repeatCount="indefinite">
+        {/* keyPoints/keyTimes drive the coin there (0->1) and back (1->0)
+            within one indefinite lap, instead of snapping to the start. */}
+        <animateMotion dur="16s" repeatCount="indefinite" keyPoints="0;1;0" keyTimes="0;0.5;1" calcMode="linear">
           <mpath href={`#${pathId}`} />
         </animateMotion>
       </circle>

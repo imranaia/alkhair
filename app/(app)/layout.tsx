@@ -14,7 +14,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // of only being reachable by typing the URL.
   const modules =
     user.roleKey === "super_admin"
-      ? [{ key: "landing", label: "Landing Page", icon: "Globe", routePrefix: "/" }, ...dbModules]
+      ? [...dbModules, { key: "landing", label: "Landing Page", icon: "Globe", routePrefix: "/" }]
       : dbModules;
 
   return (

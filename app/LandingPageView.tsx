@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { toast } from "sonner";
 import {
   Store,
   Car,
@@ -27,13 +28,15 @@ import {
   Phone,
   Mail,
   Pencil,
+  Plus,
+  Trash2,
   X,
 } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 import { GlassPanel } from "@/components/layout/GlassPanel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ALL_LOAN_PRODUCTS } from "@/lib/constants/loanProducts";
+import { Checkbox } from "@/components/ui/checkbox";
 import { CurrencyField } from "@/components/marketing/CurrencyField";
 import { MoneyFlowDiagram } from "@/components/marketing/MoneyFlowDiagram";
 import { Reveal } from "@/components/marketing/Reveal";
@@ -42,39 +45,57 @@ import { saveLandingFieldAction } from "./landingActions";
 import type { LandingContent } from "@/lib/db/siteContent";
 
 // Tasteful stock photography as a placeholder until real branch/client photos
-// are provided (all Unsplash License, free for commercial use).
+// are provided (all Unsplash License, free for commercial use). The photos
+// themselves aren't admin-editable (no image upload yet) — only the label
+// captioning each one is.
 const PEOPLE = [
   {
-    label: "Market Trader",
     alt: "Market trader at a fruit stall — photo by Omotayo Tajudeen on Unsplash",
     src: "https://images.unsplash.com/photo-1585540083814-ea6ee8af9e4f?q=80&w=800&auto=format&fit=crop",
   },
   {
-    label: "Tailor",
     alt: "Tailor working at a sewing machine — photo by Ali Mkumbwa on Unsplash",
     src: "https://images.unsplash.com/photo-1687422809069-0fa3546b8471?q=80&w=800&auto=format&fit=crop",
   },
   {
-    label: "Food Vendor",
     alt: "Food vendor grilling suya at a street stall — photo by Ben Iwara on Unsplash",
     src: "https://images.unsplash.com/photo-1765584829902-51939816637c?q=80&w=800&auto=format&fit=crop",
   },
 ];
 
-const TRADES = [
-  { label: "Market Trader", icon: Store },
-  { label: "Car Wash Operator", icon: Car },
-  { label: "Food Vendor / Cook", icon: UtensilsCrossed },
-  { label: "Shop Owner", icon: ShoppingBag },
-  { label: "Tailor / Fashion Designer", icon: Scissors },
-  { label: "Laundry / Dry Cleaner", icon: Shirt },
-  { label: "POS / Mobile Money Agent", icon: Smartphone },
-  { label: "Phone Seller / Repairer", icon: Wrench },
-  { label: "Butcher", icon: Beef },
-];
-
+// Icons cycle by index rather than being chosen per-entry — there's no icon
+// picker in this CMS, so a super admin can add a box without needing to pick
+// one. Trade/feature/requirement counts are variable; these lists just need
+// to be at least as long as what's realistically added.
+const TRADE_ICONS = [Store, Car, UtensilsCrossed, ShoppingBag, Scissors, Shirt, Smartphone, Wrench, Beef];
 const FEATURE_ICONS = [Zap, BadgePercent, Handshake, CalendarClock, MessageCircle, FileCheck];
 const REQUIREMENT_ICONS = [Briefcase, IdCard, UserCheck, MapPin];
+
+function AddBoxButton({ onClick, label, className }: { onClick: () => void; label: string; className?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-brand/40 p-4 text-sm font-medium text-brand transition-colors hover:bg-brand/5 ${className ?? ""}`}
+    >
+      <Plus className="size-4" />
+      {label}
+    </button>
+  );
+}
+
+function RemoveBoxButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="absolute right-2 top-2 z-10 rounded-md p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+      aria-label="Remove"
+    >
+      <Trash2 className="size-3.5" />
+    </button>
+  );
+}
 
 export function LandingPageView({ initialContent, isSuperAdmin }: { initialContent: LandingContent; isSuperAdmin: boolean }) {
   const [content, setContent] = useState(initialContent);
@@ -91,18 +112,84 @@ export function LandingPageView({ initialContent, isSuperAdmin }: { initialConte
     return result;
   }
 
-  function saveFeatureLabel(index: number) {
+  async function saveOrToast<K extends keyof LandingContent>(field: K, value: LandingContent[K]) {
+    const { error } = await saveField(field, value);
+    if (error) toast.error(error);
+  }
+
+  // Money flow
+  function saveMoneyFlowStep(index: number, key: "label" | "detail") {
     return (next: string) => {
-      const updated = content.featureLabels.map((f, i) => (i === index ? next : f));
-      return saveField("featureLabels", updated);
+      const updated = content.moneyFlowSteps.map((s, i) => (i === index ? { ...s, [key]: next } : s));
+      return saveField("moneyFlowSteps", updated);
     };
   }
 
+  // Trades
+  function saveTradeLabel(index: number) {
+    return (next: string) => saveField("trades", content.trades.map((t, i) => (i === index ? next : t)));
+  }
+  function addTrade() {
+    saveOrToast("trades", [...content.trades, "New trade"]);
+  }
+  function removeTrade(index: number) {
+    saveOrToast(
+      "trades",
+      content.trades.filter((_, i) => i !== index),
+    );
+  }
+
+  // People captions
+  function savePeopleLabel(index: number) {
+    return (next: string) => saveField("peopleLabels", content.peopleLabels.map((l, i) => (i === index ? next : l)));
+  }
+
+  // Products
+  function saveProductField(index: number, key: "label" | "description") {
+    return (next: string) => saveField("products", content.products.map((p, i) => (i === index ? { ...p, [key]: next } : p)));
+  }
+  function toggleProductComingSoon(index: number, comingSoon: boolean) {
+    saveOrToast(
+      "products",
+      content.products.map((p, i) => (i === index ? { ...p, comingSoon } : p)),
+    );
+  }
+  function addProduct() {
+    saveOrToast("products", [...content.products, { label: "New product", description: "Describe it here.", comingSoon: false }]);
+  }
+  function removeProduct(index: number) {
+    saveOrToast(
+      "products",
+      content.products.filter((_, i) => i !== index),
+    );
+  }
+
+  // Features
+  function saveFeatureLabel(index: number) {
+    return (next: string) => saveField("featureLabels", content.featureLabels.map((f, i) => (i === index ? next : f)));
+  }
+  function addFeature() {
+    saveOrToast("featureLabels", [...content.featureLabels, "New feature"]);
+  }
+  function removeFeature(index: number) {
+    saveOrToast(
+      "featureLabels",
+      content.featureLabels.filter((_, i) => i !== index),
+    );
+  }
+
+  // Requirements
   function saveRequirementField(index: number, key: "label" | "detail") {
-    return (next: string) => {
-      const updated = content.requirements.map((r, i) => (i === index ? { ...r, [key]: next } : r));
-      return saveField("requirements", updated);
-    };
+    return (next: string) => saveField("requirements", content.requirements.map((r, i) => (i === index ? { ...r, [key]: next } : r)));
+  }
+  function addRequirement() {
+    saveOrToast("requirements", [...content.requirements, { label: "New requirement", detail: "Describe it here." }]);
+  }
+  function removeRequirement(index: number) {
+    saveOrToast(
+      "requirements",
+      content.requirements.filter((_, i) => i !== index),
+    );
   }
 
   return (
@@ -185,33 +272,56 @@ export function LandingPageView({ initialContent, isSuperAdmin }: { initialConte
 
       {/* How the money moves - distinct layout family: animated 3-stop journey */}
       <section className="space-y-8">
-        <h2 className="text-2xl font-semibold tracking-tight">How the money moves</h2>
-        <MoneyFlowDiagram />
+        <EditableText
+          as="h2"
+          value={content.moneyFlowHeading}
+          editMode={editMode}
+          onSave={(v) => saveField("moneyFlowHeading", v)}
+          className="text-2xl font-semibold tracking-tight"
+        />
+        <MoneyFlowDiagram steps={content.moneyFlowSteps} editMode={editMode} onSaveStep={saveMoneyFlowStep} />
       </section>
 
       {/* Who we finance - bento-style icon grid, varied cell sizes */}
       <section className="space-y-5">
-        <h2 className="text-2xl font-semibold tracking-tight">Who we finance</h2>
+        <EditableText
+          as="h2"
+          value={content.tradesHeading}
+          editMode={editMode}
+          onSave={(v) => saveField("tradesHeading", v)}
+          className="text-2xl font-semibold tracking-tight"
+        />
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {TRADES.map((t, i) => (
-            <Reveal key={t.label} index={i}>
-              <div className="glass-panel flex h-full items-center gap-3 p-4 transition-transform duration-200 hover:-translate-y-1">
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand/15 text-brand-foreground text-foreground">
-                  <t.icon className="size-4.5" />
+          {content.trades.map((label, i) => {
+            const Icon = TRADE_ICONS[i % TRADE_ICONS.length];
+            return (
+              <Reveal key={i} index={i}>
+                <div className="glass-panel relative flex h-full items-center gap-3 p-4 transition-transform duration-200 hover:-translate-y-1">
+                  {editMode && <RemoveBoxButton onClick={() => removeTrade(i)} />}
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand/15 text-brand-foreground text-foreground">
+                    <Icon className="size-4.5" />
+                  </div>
+                  <EditableText value={label} editMode={editMode} onSave={saveTradeLabel(i)} className="flex-1 text-sm font-medium" />
                 </div>
-                <p className="text-sm font-medium">{t.label}</p>
-              </div>
-            </Reveal>
-          ))}
+              </Reveal>
+            );
+          })}
+          {editMode && <AddBoxButton onClick={addTrade} label="Add trade" />}
         </div>
       </section>
 
       {/* Built for people like you - photographic counterpoint to the icon-only bento above */}
       <section className="space-y-5">
-        <h2 className="text-2xl font-semibold tracking-tight">Built for people like you</h2>
+        <EditableText
+          as="h2"
+          value={content.peopleHeading}
+          editMode={editMode}
+          onSave={(v) => saveField("peopleHeading", v)}
+          className="text-2xl font-semibold tracking-tight"
+        />
         <div className="grid gap-4 sm:grid-cols-3">
           {PEOPLE.map((p, i) => (
-            <Reveal key={p.label} index={i}>
+            <Reveal key={i} index={i}>
               <div className="group relative aspect-[4/5] overflow-hidden rounded-2xl">
                 <Image
                   src={p.src}
@@ -221,7 +331,12 @@ export function LandingPageView({ initialContent, isSuperAdmin }: { initialConte
                   className="object-cover transition-transform duration-500 group-hover:scale-105"
                 />
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent p-4 pt-10">
-                  <p className="text-sm font-medium text-white">{p.label}</p>
+                  <EditableText
+                    value={content.peopleLabels[i] ?? ""}
+                    editMode={editMode}
+                    onSave={savePeopleLabel(i)}
+                    className="text-sm font-medium text-white"
+                  />
                 </div>
               </div>
             </Reveal>
@@ -231,58 +346,97 @@ export function LandingPageView({ initialContent, isSuperAdmin }: { initialConte
 
       {/* Our products - three cards, distinct from the bento/photo layouts above */}
       <section className="space-y-5">
-        <h2 className="text-2xl font-semibold tracking-tight">Our products</h2>
+        <EditableText
+          as="h2"
+          value={content.productsHeading}
+          editMode={editMode}
+          onSave={(v) => saveField("productsHeading", v)}
+          className="text-2xl font-semibold tracking-tight"
+        />
         <div className="grid gap-4 sm:grid-cols-3">
-          {ALL_LOAN_PRODUCTS.map((p, i) => (
-            <Reveal key={p.value} index={i}>
-              <GlassPanel className="flex h-full flex-col gap-2 p-5">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-semibold">{p.label}</p>
-                  {"comingSoon" in p && p.comingSoon && (
+          {content.products.map((p, i) => (
+            <Reveal key={i} index={i}>
+              <GlassPanel className="relative flex h-full flex-col gap-2 p-5">
+                {editMode && <RemoveBoxButton onClick={() => removeProduct(i)} />}
+                <div className="flex items-center justify-between gap-2 pr-5">
+                  <EditableText value={p.label} editMode={editMode} onSave={saveProductField(i, "label")} className="text-sm font-semibold" />
+                  {!editMode && p.comingSoon && (
                     <Badge variant="secondary" className="shrink-0">
                       Coming soon
                     </Badge>
                   )}
                 </div>
-                <p className="text-sm text-muted-foreground">{p.description}</p>
+                <EditableText
+                  value={p.description}
+                  editMode={editMode}
+                  multiline
+                  onSave={saveProductField(i, "description")}
+                  className="text-sm text-muted-foreground"
+                />
+                {editMode && (
+                  <label className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                    <Checkbox checked={p.comingSoon} onCheckedChange={(v) => toggleProductComingSoon(i, v === true)} />
+                    Coming soon
+                  </label>
+                )}
               </GlassPanel>
             </Reveal>
           ))}
+          {editMode && <AddBoxButton onClick={addProduct} label="Add product" className="min-h-24" />}
         </div>
       </section>
 
       {/* Why work with us - plain icon rows, no card boxes */}
       <section className="space-y-5">
-        <h2 className="text-2xl font-semibold tracking-tight">Why work with us</h2>
+        <EditableText
+          as="h2"
+          value={content.featuresHeading}
+          editMode={editMode}
+          onSave={(v) => saveField("featuresHeading", v)}
+          className="text-2xl font-semibold tracking-tight"
+        />
         <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
           {content.featureLabels.map((label, i) => {
-            const Icon = FEATURE_ICONS[i];
+            const Icon = FEATURE_ICONS[i % FEATURE_ICONS.length];
             return (
               <Reveal key={i} index={i}>
                 <div className="flex items-center gap-3 border-b border-border pb-4">
                   <Icon className="size-4.5 shrink-0 text-brand" />
-                  <EditableText
-                    value={label}
-                    editMode={editMode}
-                    onSave={saveFeatureLabel(i)}
-                    className="text-sm font-medium"
-                  />
+                  <EditableText value={label} editMode={editMode} onSave={saveFeatureLabel(i)} className="flex-1 text-sm font-medium" />
+                  {editMode && (
+                    <button
+                      type="button"
+                      onClick={() => removeFeature(i)}
+                      className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                      aria-label="Remove"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  )}
                 </div>
               </Reveal>
             );
           })}
         </div>
+        {editMode && <AddBoxButton onClick={addFeature} label="Add feature" className="w-full sm:w-auto" />}
       </section>
 
       {/* Requirements - distinct layout family: numbered vertical list */}
       <section className="space-y-5">
-        <h2 className="text-2xl font-semibold tracking-tight">What you need to apply</h2>
+        <EditableText
+          as="h2"
+          value={content.requirementsHeading}
+          editMode={editMode}
+          onSave={(v) => saveField("requirementsHeading", v)}
+          className="text-2xl font-semibold tracking-tight"
+        />
         <div className="space-y-3">
           {content.requirements.map((r, i) => {
-            const Icon = REQUIREMENT_ICONS[i];
+            const Icon = REQUIREMENT_ICONS[i % REQUIREMENT_ICONS.length];
             return (
               <Reveal key={i} index={i}>
-                <GlassPanel className="flex items-start gap-4 p-5">
+                <GlassPanel className="relative flex items-start gap-4 p-5">
+                  {editMode && <RemoveBoxButton onClick={() => removeRequirement(i)} />}
                   <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-brand/15 text-brand-foreground text-foreground">
                     <Icon className="size-5" />
                   </div>
@@ -305,6 +459,7 @@ export function LandingPageView({ initialContent, isSuperAdmin }: { initialConte
               </Reveal>
             );
           })}
+          {editMode && <AddBoxButton onClick={addRequirement} label="Add requirement" />}
         </div>
       </section>
 
