@@ -50,7 +50,11 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   const portalLogin = await getClientLogin(clientId);
   const checklist = await getLatestChecklist(clientId);
   const admin = isAdmin(user.roleKey);
-  const hasNoPrincipalYet = !loanSummary && loanHistory.length === 0;
+  // No active loan right now — either this client has never had one, or
+  // their last one is fully repaid. Either way, applying for a new
+  // principal is the primary thing to do on this page, so it gets the
+  // prominent banner below instead of being buried in the header row.
+  const eligibleForNewPrincipal = !loanSummary;
 
   return (
     <div className="space-y-4">
@@ -65,8 +69,8 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {canEdit && <ChecklistDialog clientId={client.id} />}
-          {canEdit && admin && !hasNoPrincipalYet && <LoanAgreementDialog clientId={client.id} />}
-          {canEdit && !admin && !hasNoPrincipalYet && (
+          {canEdit && admin && !eligibleForNewPrincipal && <LoanAgreementDialog clientId={client.id} />}
+          {canEdit && !admin && !eligibleForNewPrincipal && (
             <ApplyLoanDialog
               clientId={client.id}
               fullName={client.fullName}
@@ -80,46 +84,49 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
       </div>
 
       <GlassPanel className="grid grid-cols-2 gap-4 p-6 sm:grid-cols-3">
-        <div>
+        <div className="min-w-0">
           <p className="text-xs text-muted-foreground">Client code</p>
-          <p className="font-medium">{client.clientCode}</p>
+          <p className="font-medium break-words">{client.clientCode}</p>
         </div>
-        <div>
+        <div className="min-w-0">
           <p className="text-xs text-muted-foreground">Branch</p>
-          <p className="font-medium">{client.branchName}</p>
+          <p className="font-medium break-words">{client.branchName}</p>
         </div>
-        <div>
+        <div className="min-w-0">
           <p className="text-xs text-muted-foreground">Group</p>
-          <p className="font-medium">{client.groupName || "—"}</p>
+          <p className="font-medium break-words">{client.groupName || "—"}</p>
         </div>
-        <div>
+        <div className="min-w-0">
           <p className="text-xs text-muted-foreground">Phone</p>
-          <p className="font-medium">{client.phone || "—"}</p>
+          <p className="font-medium break-words">{client.phone || "—"}</p>
         </div>
-        <div>
+        <div className="min-w-0">
           <p className="text-xs text-muted-foreground">Enrollment date</p>
-          <p className="font-medium">{client.enrollmentDate}</p>
+          <p className="font-medium break-words">{client.enrollmentDate}</p>
         </div>
-        <div>
+        <div className="min-w-0">
           <p className="text-xs text-muted-foreground">Collections officer</p>
-          <p className="font-medium">{client.loanCollectorName || "Unassigned"}</p>
+          <p className="font-medium break-words">{client.loanCollectorName || "Unassigned"}</p>
         </div>
-        <div>
+        <div className="min-w-0">
           <p className="text-xs text-muted-foreground">Trade / business</p>
-          <p className="font-medium">{client.businessType || "—"}</p>
+          <p className="font-medium break-words">{client.businessType || "—"}</p>
         </div>
-        <div>
+        <div className="min-w-0">
           <p className="text-xs text-muted-foreground">Business location</p>
-          <p className="font-medium">{client.businessLocation || "—"}</p>
+          <p className="font-medium break-words">{client.businessLocation || "—"}</p>
         </div>
       </GlassPanel>
 
-      {hasNoPrincipalYet && (
+      {eligibleForNewPrincipal && (
         <GlassPanel className="flex flex-wrap items-center justify-between gap-3 border-2 border-brand/50 bg-brand/5 p-5">
           <div>
-            <p className="font-semibold">No principal yet</p>
+            <p className="font-semibold">{loanHistory.length === 0 ? "No principal yet" : "Eligible for a new principal"}</p>
             <p className="text-sm text-muted-foreground">
-              This client hasn&apos;t taken a principal. {canEdit ? "Apply for their first one below." : ""}
+              {loanHistory.length === 0
+                ? "This client hasn't taken a principal."
+                : "Every past agreement below is fully repaid."}
+              {canEdit ? " Apply for one below." : ""}
             </p>
           </div>
           {canEdit &&
@@ -139,31 +146,25 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
       {loanSummary && (
         <GlassPanel className="grid grid-cols-2 gap-4 p-6 sm:grid-cols-4">
-          <div>
+          <div className="min-w-0">
             <p className="text-xs text-muted-foreground">Principal</p>
-            <p className="text-lg font-semibold">{money(loanSummary.agreement.principalAmount)}</p>
+            <p className="text-lg font-semibold break-words">{money(loanSummary.agreement.principalAmount)}</p>
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-xs text-muted-foreground">Profit</p>
-            <p className="text-lg font-semibold">{money(loanSummary.agreement.profitAmount)}</p>
+            <p className="text-lg font-semibold break-words">{money(loanSummary.agreement.profitAmount)}</p>
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-xs text-muted-foreground">Next payment due</p>
-            <p className="text-lg font-semibold">
+            <p className="text-lg font-semibold break-words">
               {loanSummary.nextDue ? `${money(loanSummary.nextDue.dueAmount)} on ${loanSummary.nextDue.dueDate}` : "—"}
             </p>
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-xs text-muted-foreground">Remaining balance</p>
-            <p className="text-lg font-semibold text-primary">{money(loanSummary.remainingBalance)}</p>
+            <p className="text-lg font-semibold text-primary break-words">{money(loanSummary.remainingBalance)}</p>
           </div>
         </GlassPanel>
-      )}
-
-      {!loanSummary && loanHistory.length > 0 && (
-        <p className="text-sm text-muted-foreground">
-          No outstanding principal &mdash; every past agreement below is fully repaid. Eligible for a new principal.
-        </p>
       )}
 
       {loanHistory.length > 0 && (
@@ -216,26 +217,26 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             )}
           </div>
           <div className="grid grid-cols-2 gap-4 border-t border-border pt-3 sm:grid-cols-4">
-            <div>
+            <div className="min-w-0">
               <p className="text-xs text-muted-foreground">Client type</p>
-              <p className="text-sm font-medium capitalize">{checklist.clientType}</p>
+              <p className="text-sm font-medium capitalize break-words">{checklist.clientType}</p>
             </div>
             {checklist.amountApproved && (
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs text-muted-foreground">Amount approved</p>
-                <p className="text-sm font-medium">{money(checklist.amountApproved)}</p>
+                <p className="text-sm font-medium break-words">{money(checklist.amountApproved)}</p>
               </div>
             )}
             {checklist.preferredTenureMonths && (
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs text-muted-foreground">Preferred tenure</p>
-                <p className="text-sm font-medium">{checklist.preferredTenureMonths} months</p>
+                <p className="text-sm font-medium break-words">{checklist.preferredTenureMonths} months</p>
               </div>
             )}
             {checklist.nin && (
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs text-muted-foreground">NIN</p>
-                <p className="text-sm font-medium">{checklist.nin}</p>
+                <p className="text-sm font-medium break-words">{checklist.nin}</p>
               </div>
             )}
           </div>
