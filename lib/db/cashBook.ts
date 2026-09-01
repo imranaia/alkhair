@@ -1,7 +1,8 @@
 import "server-only";
 import { getDb } from "./client";
+import type { DbTx } from "./client";
 import { cashBookEntries, users } from "./schema";
-import { eq, and, asc, isNull, sql } from "drizzle-orm";
+import { eq, and, asc, sql } from "drizzle-orm";
 import { generatePaymentId } from "@/lib/services/paymentId";
 
 export async function listCashBookEntries(params: { branchId: number; accountName?: string }) {
@@ -38,29 +39,39 @@ export async function listCashBookAccountNames(branchId: number) {
   return rows.map((r) => r.accountName).filter((a): a is string => !!a);
 }
 
-// Recomputes every row's running balance from scratch, in chronological order,
-// scoped per (branch, account) — each named sub-account keeps its own
-// independent running balance, same as the source cash book.
+// Recomputes every row's running balance in one statement, scoped per
+// (branch, account) — each named sub-account keeps its own independent
+// running balance, same as the source cash book.
 //
 // Matches the source cash book's own formula (balance = prior - debit + credit,
 // i.e. a bank-statement view: debit is money paid out, credit is money received).
-async function recomputeRunningBalances(branchId: number, accountName: string | null) {
-  const db = getDb();
-  const accountCondition = accountName === null ? isNull(cashBookEntries.accountName) : eq(cashBookEntries.accountName, accountName);
-  const rows = await db
-    .select({ id: cashBookEntries.id, debit: cashBookEntries.debit, credit: cashBookEntries.credit })
-    .from(cashBookEntries)
-    .where(and(eq(cashBookEntries.branchId, branchId), accountCondition))
-    .orderBy(asc(cashBookEntries.entryDate), asc(cashBookEntries.id));
+//
+// This is a single set-based UPDATE using a window function rather than a
+// read-all-rows-then-update-one-at-a-time loop: the old loop ran outside any
+// transaction, so a crash partway through left balances half-updated with no
+// repair path, and two entries recorded close together could race and
+// overwrite each other's math. A single UPDATE is atomic — it either fully
+// applies or fully rolls back with the rest of the caller's transaction, and
+// Postgres row-locks the affected rows for its duration, so a second
+// concurrent recompute on the same (branch, account) simply waits its turn
+// rather than reading a stale in-flight balance.
+export async function recomputeRunningBalances(tx: DbTx, branchId: number, accountName: string | null) {
+  const accountCondition = accountName === null ? sql`account_name is null` : sql`account_name = ${accountName}`;
 
-  let balance = 0;
-  for (const row of rows) {
-    balance += Number(row.credit) - Number(row.debit);
-    await db.update(cashBookEntries).set({ runningBalance: balance.toFixed(2) }).where(eq(cashBookEntries.id, row.id));
-  }
+  await tx.execute(sql`
+    with computed as (
+      select id, sum(credit - debit) over (order by entry_date, id) as balance
+      from cash_book_entries
+      where branch_id = ${branchId} and ${accountCondition}
+    )
+    update cash_book_entries as e
+    set running_balance = computed.balance
+    from computed
+    where e.id = computed.id
+  `);
 }
 
-export async function createCashBookEntry(data: {
+type NewCashBookEntry = {
   branchId: number;
   entryDate: string;
   code?: string;
@@ -70,18 +81,35 @@ export async function createCashBookEntry(data: {
   debit: string;
   credit: string;
   recordedBy: number;
-}) {
+};
+
+async function insertCashBookEntry(tx: DbTx, data: NewCashBookEntry) {
+  const refNumber = await generatePaymentId(tx, data.branchId, new Date(data.entryDate));
+  const [row] = await tx
+    .insert(cashBookEntries)
+    .values({ ...data, refNumber, runningBalance: "0" })
+    .returning();
+  return row;
+}
+
+export async function createCashBookEntry(data: NewCashBookEntry) {
   const db = getDb();
 
-  const entry = await db.transaction(async (tx) => {
-    const refNumber = await generatePaymentId(tx, data.branchId, new Date(data.entryDate));
-    const [row] = await tx
-      .insert(cashBookEntries)
-      .values({ ...data, refNumber, runningBalance: "0" })
-      .returning();
-    return row;
+  return db.transaction(async (tx) => {
+    const row = await insertCashBookEntry(tx, data);
+    await recomputeRunningBalances(tx, data.branchId, data.accountName ?? null);
+    const [updated] = await tx.select().from(cashBookEntries).where(eq(cashBookEntries.id, row.id));
+    return updated ?? row;
   });
+}
 
-  await recomputeRunningBalances(data.branchId, data.accountName ?? null);
-  return entry;
+// For bulk imports: inserts one entry without recomputing running balances —
+// the caller is responsible for calling recomputeRunningBalances itself once
+// per (branch, account) after every row is in, rather than once per row.
+// Recomputing per row on an import is what previously turned a few hundred
+// imported rows into well over a million sequential updates against an
+// already-established branch.
+export async function createCashBookEntryBulk(data: NewCashBookEntry) {
+  const db = getDb();
+  return db.transaction((tx) => insertCashBookEntry(tx, data));
 }
