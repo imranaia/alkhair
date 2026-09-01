@@ -12,7 +12,7 @@ export default async function RolesPage() {
   const roles = await listRoles();
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-tour="tour-roles">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold">Roles</h1>
         {canCreate && <NewRoleDialog />}

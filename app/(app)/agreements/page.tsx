@@ -24,7 +24,7 @@ export default async function AgreementsPage() {
   ]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-tour="tour-agreements">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold">Agreements</h1>

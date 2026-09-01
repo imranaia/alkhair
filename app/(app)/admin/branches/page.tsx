@@ -9,7 +9,7 @@ export default async function BranchesPage() {
   const branches = await listBranches();
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-tour="tour-branches">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold">Branches</h1>
         {canCreate && <NewBranchDialog />}

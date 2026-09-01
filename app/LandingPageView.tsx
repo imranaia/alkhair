@@ -14,6 +14,23 @@ import {
   Smartphone,
   Wrench,
   Beef,
+  Cake,
+  Fish,
+  Truck,
+  Fuel,
+  Hammer,
+  Paintbrush,
+  Laptop,
+  Camera,
+  Sparkles,
+  Home,
+  Stethoscope,
+  Gem,
+  Users,
+  BookOpen,
+  Flower2,
+  Milk,
+  Coffee,
   Zap,
   BadgePercent,
   Handshake,
@@ -31,6 +48,7 @@ import {
   Plus,
   Trash2,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 import { GlassPanel } from "@/components/layout/GlassPanel";
@@ -63,13 +81,54 @@ const PEOPLE = [
   },
 ];
 
-// Icons cycle by index rather than being chosen per-entry — there's no icon
-// picker in this CMS, so a super admin can add a box without needing to pick
-// one. Trade/feature/requirement counts are variable; these lists just need
-// to be at least as long as what's realistically added.
-const TRADE_ICONS = [Store, Car, UtensilsCrossed, ShoppingBag, Scissors, Shirt, Smartphone, Wrench, Beef];
+// Feature/requirement icons cycle by index — there's no icon picker in this
+// CMS, so a super admin can add a box without needing to pick one.
 const FEATURE_ICONS = [Zap, BadgePercent, Handshake, CalendarClock, MessageCircle, FileCheck];
 const REQUIREMENT_ICONS = [Briefcase, IdCard, UserCheck, MapPin];
+
+// Trades get a keyword match instead of a plain index cycle, so a super
+// admin typing "Hair Salon" doesn't end up with a car-wash icon just because
+// of where it landed in the list. Checked in order, first match wins; falls
+// back to a generic briefcase for anything not recognized.
+const TRADE_ICON_KEYWORDS: { keywords: string[]; icon: LucideIcon }[] = [
+  { keywords: ["market", "trader", "trading", "retail"], icon: Store },
+  { keywords: ["car wash", "wash"], icon: Car },
+  { keywords: ["food", "cook", "vendor", "kitchen", "caterer", "catering", "restaurant", "suya"], icon: UtensilsCrossed },
+  { keywords: ["bakery", "baker", "cake", "pastry"], icon: Cake },
+  { keywords: ["fish", "fishmonger", "seafood"], icon: Fish },
+  { keywords: ["milk", "dairy"], icon: Milk },
+  { keywords: ["coffee", "cafe", "tea"], icon: Coffee },
+  { keywords: ["shop", "store", "boutique"], icon: ShoppingBag },
+  { keywords: ["tailor", "fashion", "designer", "seamstress"], icon: Scissors },
+  { keywords: ["barber", "salon", "hair", "beauty", "makeup", "spa"], icon: Scissors },
+  { keywords: ["laundry", "dry clean", "cloth"], icon: Shirt },
+  { keywords: ["pos", "mobile money", "bank"], icon: Smartphone },
+  { keywords: ["phone", "gadget", "electronics"], icon: Wrench },
+  { keywords: ["mechanic", "auto", "vulcanizer", "welder", "welding", "repair"], icon: Wrench },
+  { keywords: ["butcher", "meat"], icon: Beef },
+  { keywords: ["transport", "logistics", "delivery", "dispatch", "okada", "bike", "rider"], icon: Truck },
+  { keywords: ["fuel", "petrol", "filling station", "gas"], icon: Fuel },
+  { keywords: ["carpenter", "furniture", "wood"], icon: Hammer },
+  { keywords: ["paint", "painter"], icon: Paintbrush },
+  { keywords: ["computer", "cyber", "laptop", "printing"], icon: Laptop },
+  { keywords: ["photo", "camera", "studio"], icon: Camera },
+  { keywords: ["cleaning", "cleaner"], icon: Sparkles },
+  { keywords: ["real estate", "rent", "property", "landlord"], icon: Home },
+  { keywords: ["pharmacy", "chemist", "drug", "health", "medical", "clinic"], icon: Stethoscope },
+  { keywords: ["jewelry", "jewellery", "gold"], icon: Gem },
+  { keywords: ["event", "planner", "planning"], icon: Users },
+  { keywords: ["book", "stationery", "school"], icon: BookOpen },
+  { keywords: ["flower", "florist"], icon: Flower2 },
+  { keywords: ["agent"], icon: Handshake },
+];
+
+function matchTradeIcon(label: string): LucideIcon {
+  const lower = label.toLowerCase();
+  for (const entry of TRADE_ICON_KEYWORDS) {
+    if (entry.keywords.some((k) => lower.includes(k))) return entry.icon;
+  }
+  return Briefcase;
+}
 
 function AddBoxButton({ onClick, label, className }: { onClick: () => void; label: string; className?: string }) {
   return (
@@ -293,7 +352,7 @@ export function LandingPageView({ initialContent, isSuperAdmin }: { initialConte
         />
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {content.trades.map((label, i) => {
-            const Icon = TRADE_ICONS[i % TRADE_ICONS.length];
+            const Icon = matchTradeIcon(label);
             return (
               <Reveal key={i} index={i}>
                 <div className="glass-panel relative flex h-full items-center gap-3 p-4 transition-transform duration-200 hover:-translate-y-1">

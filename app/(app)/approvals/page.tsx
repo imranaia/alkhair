@@ -10,7 +10,7 @@ export default async function ApprovalsPage() {
   const rows = await listPendingChanges(isSuperAdmin ? null : user.branchId);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-tour="tour-approvals">
       <div>
         <h1 className="text-lg font-semibold">Approvals</h1>
         <p className="text-sm text-muted-foreground">
