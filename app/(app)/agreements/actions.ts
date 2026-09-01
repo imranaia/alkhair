@@ -109,7 +109,7 @@ export async function approveLoanApplicationAction(
     throw err;
   }
 
-  revalidatePath("/loan-applications");
+  revalidatePath("/agreements");
   revalidatePath(`/clients/${change.entityId}`);
   revalidatePath("/transactions");
   return { error: null };
@@ -139,6 +139,6 @@ export async function rejectLoanApplicationAction(id: number, note?: string): Pr
     entityId: change.entityId,
   });
 
-  revalidatePath("/loan-applications");
+  revalidatePath("/agreements");
   return { error: null };
 }

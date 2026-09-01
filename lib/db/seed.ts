@@ -13,7 +13,7 @@ const MODULE_DEFS = [
   { key: "ledger", label: "Ledger", icon: "BookText", routePrefix: "/ledger", sortOrder: 45 },
   { key: "reports", label: "Reports", icon: "BarChart3", routePrefix: "/reports", sortOrder: 50 },
   { key: "import", label: "Excel Import", icon: "Upload", routePrefix: "/import", sortOrder: 60 },
-  { key: "loan_applications", label: "Loan Applications", icon: "HandCoins", routePrefix: "/loan-applications", sortOrder: 63 },
+  { key: "loan_applications", label: "Agreements", icon: "HandCoins", routePrefix: "/agreements", sortOrder: 63 },
   { key: "approvals", label: "Approvals", icon: "CheckCheck", routePrefix: "/approvals", sortOrder: 65 },
   { key: "users", label: "Users", icon: "UserCog", routePrefix: "/admin/users", sortOrder: 70 },
   { key: "roles", label: "Roles", icon: "ShieldCheck", routePrefix: "/admin/roles", sortOrder: 80 },

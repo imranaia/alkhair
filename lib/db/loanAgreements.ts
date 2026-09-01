@@ -1,7 +1,7 @@
 import "server-only";
 import { getDb } from "./client";
-import { loanAgreements, clientTransactions, clients } from "./schema";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { loanAgreements, clientTransactions, clients, branches } from "./schema";
+import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { saveTransactionRow, getTransactionRow } from "./transactions";
 import { computeTotals, computeSchedule, nextDueInstallment } from "@/lib/services/loanAgreement";
 import { generateLoanId } from "@/lib/services/clientCode";
@@ -168,4 +168,34 @@ export async function getActiveLoanSummary(clientId: number) {
   const nextDue = nextDueInstallment(schedule);
 
   return { agreement, schedule, nextDue, remainingBalance };
+}
+
+// Every currently-active loan across all clients (optionally scoped to one
+// branch), for the Agreements hub's "Ongoing agreements" list. Built on top
+// of getActiveLoanSummary per client rather than a hand-rolled bulk query —
+// this is a small operation with a modest number of active loans at a time,
+// so reusing the same self-healing, already-correct math beats duplicating
+// it in SQL and risking the two drifting apart.
+export async function listActiveLoanAgreements(branchId: number | null) {
+  const db = getDb();
+  const conditions = [eq(loanAgreements.status, "active")];
+  if (branchId !== null) conditions.push(eq(loanAgreements.branchId, branchId));
+
+  const candidates = await db.select({ clientId: loanAgreements.clientId }).from(loanAgreements).where(and(...conditions));
+  const clientIds = [...new Set(candidates.map((c) => c.clientId))];
+  if (clientIds.length === 0) return [];
+
+  const summaries = await Promise.all(clientIds.map((id) => getActiveLoanSummary(id)));
+
+  const clientRows = await db
+    .select({ id: clients.id, clientCode: clients.clientCode, fullName: clients.fullName, branchName: branches.name })
+    .from(clients)
+    .innerJoin(branches, eq(branches.id, clients.branchId))
+    .where(inArray(clients.id, clientIds));
+  const clientById = new Map(clientRows.map((c) => [c.id, c]));
+
+  return summaries
+    .filter((s): s is NonNullable<typeof s> => s !== null)
+    .map((s) => ({ ...s, client: clientById.get(s.agreement.clientId)! }))
+    .sort((a, b) => a.agreement.startDate.localeCompare(b.agreement.startDate));
 }
