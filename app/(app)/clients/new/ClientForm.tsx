@@ -65,54 +65,59 @@ export function ClientForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="nickname">Nickname (optional)</Label>
-        <Input id="nickname" name="nickname" />
+        <Label htmlFor="nickname">Nickname</Label>
+        <Input id="nickname" name="nickname" required />
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="phone">Phone (optional)</Label>
-        <Input id="phone" name="phone" />
+        <Label htmlFor="phone">Phone</Label>
+        <Input id="phone" name="phone" required />
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="address">Address (optional)</Label>
-        <Input id="address" name="address" />
+        <Label htmlFor="address">Address</Label>
+        <Input id="address" name="address" required />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="landmark">Landmark</Label>
+        <Input id="landmark" name="landmark" placeholder="e.g. Opposite First Bank" required />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <Label htmlFor="nin">NIN (optional)</Label>
-          <Input id="nin" name="nin" />
+          <Label htmlFor="nin">NIN</Label>
+          <Input id="nin" name="nin" required />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="neighborRelativePhone">Neighbor&apos;s / relative&apos;s phone</Label>
-          <Input id="neighborRelativePhone" name="neighborRelativePhone" />
+          <Input id="neighborRelativePhone" name="neighborRelativePhone" required />
         </div>
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="groupName">Group (optional)</Label>
-        <Input id="groupName" name="groupName" />
+        <Label htmlFor="groupName">Group</Label>
+        <Input id="groupName" name="groupName" required />
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="businessType">Trade / business (optional)</Label>
-        <Input id="businessType" name="businessType" placeholder="e.g. Provisions, Food Stuff" />
+        <Label htmlFor="businessType">Trade / business</Label>
+        <Input id="businessType" name="businessType" placeholder="e.g. Provisions, Food Stuff" required />
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="businessLocation">Business location (optional)</Label>
-        <Input id="businessLocation" name="businessLocation" placeholder="e.g. Kubwa Village" />
+        <Label htmlFor="businessLocation">Business location</Label>
+        <Input id="businessLocation" name="businessLocation" placeholder="e.g. Kubwa Village" required />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label htmlFor="experienceYears">Experience in business (years)</Label>
-          <Input id="experienceYears" name="experienceYears" type="number" min="0" step="1" />
+          <Input id="experienceYears" name="experienceYears" type="number" min="0" step="1" required />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="customerType">Type of customer</Label>
-          <Select name="customerType" defaultValue="walk_in">
+          <Select name="customerType" defaultValue="walk_in" required>
             <SelectTrigger id="customerType" className="w-full">
               <SelectValue />
             </SelectTrigger>

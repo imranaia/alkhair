@@ -22,6 +22,7 @@ export type ClientRow = {
   fullName: string;
   phone: string | null;
   address: string | null;
+  landmark: string | null;
   groupName: string | null;
   businessType: string | null;
   businessLocation: string | null;
@@ -122,6 +123,10 @@ export function ClientCard({
                 <dt className="text-xs text-muted-foreground">Address</dt>
                 <dd className="font-medium">{client.address || "—"}</dd>
               </div>
+              <div className="col-span-2">
+                <dt className="text-xs text-muted-foreground">Landmark</dt>
+                <dd className="font-medium">{client.landmark || "—"}</dd>
+              </div>
             </dl>
 
             <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
@@ -152,15 +157,15 @@ export function ClientCard({
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor={`phone-${client.id}`}>Phone</Label>
-                <Input id={`phone-${client.id}`} name="phone" defaultValue={client.phone ?? ""} />
+                <Input id={`phone-${client.id}`} name="phone" defaultValue={client.phone ?? ""} required />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor={`groupName-${client.id}`}>Group</Label>
-                <Input id={`groupName-${client.id}`} name="groupName" defaultValue={client.groupName ?? ""} />
+                <Input id={`groupName-${client.id}`} name="groupName" defaultValue={client.groupName ?? ""} required />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor={`businessType-${client.id}`}>Trade / business</Label>
-                <Input id={`businessType-${client.id}`} name="businessType" defaultValue={client.businessType ?? ""} />
+                <Input id={`businessType-${client.id}`} name="businessType" defaultValue={client.businessType ?? ""} required />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor={`businessLocation-${client.id}`}>Business location</Label>
@@ -168,11 +173,16 @@ export function ClientCard({
                   id={`businessLocation-${client.id}`}
                   name="businessLocation"
                   defaultValue={client.businessLocation ?? ""}
+                  required
                 />
               </div>
               <div className="col-span-2 space-y-1.5">
                 <Label htmlFor={`address-${client.id}`}>Address</Label>
-                <Input id={`address-${client.id}`} name="address" defaultValue={client.address ?? ""} />
+                <Input id={`address-${client.id}`} name="address" defaultValue={client.address ?? ""} required />
+              </div>
+              <div className="col-span-2 space-y-1.5">
+                <Label htmlFor={`landmark-${client.id}`}>Landmark</Label>
+                <Input id={`landmark-${client.id}`} name="landmark" defaultValue={client.landmark ?? ""} required />
               </div>
               {collectors.length > 0 && (
                 <div className="col-span-2 space-y-1.5">

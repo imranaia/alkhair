@@ -169,6 +169,9 @@ export const clients = pgTable(
     fullName: varchar("full_name", { length: 150 }).notNull(),
     phone: varchar("phone", { length: 30 }),
     address: text("address"),
+    // A notable nearby building/feature — standard practice for locating an
+    // address in areas without formal street numbering.
+    landmark: varchar("landmark", { length: 150 }),
     enrollmentWeek: smallint("enrollment_week").notNull(),
     enrollmentDay: smallint("enrollment_day").notNull(),
     enrollmentDate: date("enrollment_date").notNull(),
