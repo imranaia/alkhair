@@ -75,6 +75,11 @@ export function ClientForm({
       </div>
 
       <div className="space-y-1.5">
+        <Label htmlFor="email">Email (optional)</Label>
+        <Input id="email" name="email" type="email" placeholder="For account and loan notifications" />
+      </div>
+
+      <div className="space-y-1.5">
         <Label htmlFor="address">Address</Label>
         <Input id="address" name="address" required />
       </div>

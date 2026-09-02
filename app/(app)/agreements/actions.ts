@@ -11,7 +11,10 @@ import {
   recommendLoanApplicationAmount,
 } from "@/lib/db/pendingChanges";
 import { createLoanAgreement, OutstandingLoanError } from "@/lib/db/loanAgreements";
+import { getClientById } from "@/lib/db/clients";
 import { logAction } from "@/lib/db/audit";
+import { sendEmail } from "@/lib/email/send";
+import { loanApprovedEmail, APP_URL } from "@/lib/email/templates";
 
 const approveSchema = z.object({
   product: z.enum(["biz", "partner"]),
@@ -139,6 +142,18 @@ export async function approveLoanApplicationAction(
       entityId: agreement.id,
       after: { principalAmount: agreement.principalAmount, profitAmount: agreement.profitAmount, tenureWeeks: agreement.tenureWeeks },
     });
+
+    const client = await getClientById(change.entityId);
+    if (client?.email) {
+      const email = loanApprovedEmail({
+        clientName: client.fullName,
+        principalAmount: Number(agreement.principalAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        tenureWeeks: agreement.tenureWeeks,
+        startDate: agreement.startDate,
+        loginUrl: `${APP_URL}/portal`,
+      });
+      void sendEmail({ to: client.email, subject: email.subject, html: email.html });
+    }
   } catch (err) {
     // The claim above already flipped status to 'approved' — if creating the
     // agreement itself then fails, put the request back to 'pending' rather

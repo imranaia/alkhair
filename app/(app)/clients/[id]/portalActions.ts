@@ -10,6 +10,8 @@ import { createNotice } from "@/lib/db/clientNotices";
 import { createLoanAgreement, getActiveLoanSummary, OutstandingLoanError } from "@/lib/db/loanAgreements";
 import { submitForApproval } from "@/lib/db/pendingChanges";
 import { logAction } from "@/lib/db/audit";
+import { sendEmail } from "@/lib/email/send";
+import { clientAccountCreatedEmail, loanApprovedEmail, APP_URL } from "@/lib/email/templates";
 
 export type PortalLoginState = { error: string | null; username?: string; tempPassword?: string };
 
@@ -47,6 +49,17 @@ export async function createPortalLoginAction(_prevState: PortalLoginState, form
     entityType: "client",
     entityId: clientId,
   });
+
+  if (client.email) {
+    const email = clientAccountCreatedEmail({
+      clientName: client.fullName,
+      clientCode: client.clientCode,
+      username: createdUser.username,
+      tempPassword,
+      loginUrl: `${APP_URL}/login`,
+    });
+    void sendEmail({ to: client.email, subject: email.subject, html: email.html });
+  }
 
   revalidatePath(`/clients/${clientId}`);
   return { error: null, username: createdUser.username, tempPassword };
@@ -225,6 +238,17 @@ export async function createLoanAgreementAction(_prevState: AgreementFormState, 
     entityId: agreement.id,
     after: { principalAmount: agreement.principalAmount, profitAmount: agreement.profitAmount, tenureWeeks: agreement.tenureWeeks },
   });
+
+  if (client.email) {
+    const email = loanApprovedEmail({
+      clientName: client.fullName,
+      principalAmount: Number(agreement.principalAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      tenureWeeks: agreement.tenureWeeks,
+      startDate: agreement.startDate,
+      loginUrl: `${APP_URL}/portal`,
+    });
+    void sendEmail({ to: client.email, subject: email.subject, html: email.html });
+  }
 
   revalidatePath(`/clients/${client.id}`);
   revalidatePath("/transactions");

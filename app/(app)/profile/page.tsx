@@ -49,6 +49,7 @@ export default async function ProfilePage() {
           username={profile?.username ?? user.username}
           fullName={profile?.fullName ?? user.fullName}
           phone={profile?.phone ?? null}
+          email={profile?.email ?? null}
         />
         <p className="mt-4 text-xs text-muted-foreground">Last login: {formatDateTime(profile?.lastLoginAt ?? null)}</p>
       </GlassPanel>

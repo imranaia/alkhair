@@ -109,6 +109,10 @@ export function NewUserDialog({
               <Input id="phone" name="phone" />
             </div>
             <div className="space-y-1.5">
+              <Label htmlFor="email">Email (optional)</Label>
+              <Input id="email" name="email" type="email" placeholder="For notifications" />
+            </div>
+            <div className="space-y-1.5">
               <Label htmlFor="roleId">Role</Label>
               <Select name="roleId" required>
                 <SelectTrigger id="roleId" className="w-full">

@@ -19,6 +19,7 @@ const userSchema = z.object({
     .regex(/^[a-z0-9._-]+$/, "Letters, numbers, dots, dashes, underscores only"),
   fullName: z.string().trim().min(2).max(120),
   phone: z.string().trim().max(30).optional().or(z.literal("")),
+  email: z.string().trim().email("Enter a valid email.").max(150).optional().or(z.literal("")),
   roleId: z.coerce.number().int().positive(),
   branchId: z.coerce.number().int().positive().optional(),
 });
@@ -32,6 +33,7 @@ export async function createUserAction(_prevState: UserFormState, formData: Form
     username: formData.get("username"),
     fullName: formData.get("fullName"),
     phone: formData.get("phone"),
+    email: formData.get("email"),
     roleId: formData.get("roleId"),
     branchId: formData.get("branchId") || undefined,
   });
@@ -67,6 +69,7 @@ export async function createUserAction(_prevState: UserFormState, formData: Form
     username: parsed.data.username,
     fullName: parsed.data.fullName,
     phone: parsed.data.phone || undefined,
+    email: parsed.data.email || undefined,
     roleId: role.id,
     branchId: role.key === "super_admin" ? null : branchId,
     createdBy: sessionUser.userId,
@@ -96,6 +99,7 @@ const updateUserSchema = z.object({
     .regex(/^[a-z0-9._-]+$/, "Letters, numbers, dots, dashes, underscores only"),
   fullName: z.string().trim().min(2).max(120),
   phone: z.string().trim().max(30).optional().or(z.literal("")),
+  email: z.string().trim().email("Enter a valid email.").max(150).optional().or(z.literal("")),
   roleId: z.coerce.number().int().positive(),
   branchId: z.coerce.number().int().positive().optional(),
 });
@@ -108,6 +112,7 @@ export async function updateUserAction(_prevState: UserFormState, formData: Form
     username: formData.get("username"),
     fullName: formData.get("fullName"),
     phone: formData.get("phone"),
+    email: formData.get("email"),
     roleId: formData.get("roleId"),
     branchId: formData.get("branchId") || undefined,
   });
@@ -162,6 +167,7 @@ export async function updateUserAction(_prevState: UserFormState, formData: Form
     username: parsed.data.username,
     fullName: parsed.data.fullName,
     phone: parsed.data.phone || undefined,
+    email: parsed.data.email || undefined,
     roleId: role.id,
     branchId: finalBranchId,
     bumpTokenVersion,

@@ -10,7 +10,17 @@ import { updateOwnProfileAction, type ProfileFormState } from "./actions";
 
 const initialState: ProfileFormState = { error: null };
 
-export function EditProfileForm({ username, fullName, phone }: { username: string; fullName: string; phone: string | null }) {
+export function EditProfileForm({
+  username,
+  fullName,
+  phone,
+  email,
+}: {
+  username: string;
+  fullName: string;
+  phone: string | null;
+  email: string | null;
+}) {
   const [editing, setEditing] = useState(false);
   const [state, formAction, pending] = useActionState(updateOwnProfileAction, initialState);
   const wasPending = useRef(false);
@@ -38,6 +48,10 @@ export function EditProfileForm({ username, fullName, phone }: { username: strin
           <dt className="text-xs text-muted-foreground">Phone</dt>
           <dd>{phone || "—"}</dd>
         </div>
+        <div>
+          <dt className="text-xs text-muted-foreground">Email</dt>
+          <dd>{email || "—"}</dd>
+        </div>
         <div className="sm:col-span-2">
           <Button type="button" variant="secondary" size="sm" className="gap-1.5" onClick={() => setEditing(true)}>
             <Pencil className="size-3.5" />
@@ -62,6 +76,10 @@ export function EditProfileForm({ username, fullName, phone }: { username: strin
         <div className="space-y-1.5">
           <Label htmlFor="phone">Phone</Label>
           <Input id="phone" name="phone" defaultValue={phone ?? ""} />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="email">Email</Label>
+          <Input id="email" name="email" type="email" defaultValue={email ?? ""} placeholder="For notifications" />
         </div>
       </div>
       <p className="text-xs text-muted-foreground">Changing your username signs you out of any other active sessions.</p>

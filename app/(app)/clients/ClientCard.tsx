@@ -21,6 +21,7 @@ export type ClientRow = {
   clientCode: string;
   fullName: string;
   phone: string | null;
+  email: string | null;
   address: string | null;
   landmark: string | null;
   groupName: string | null;
@@ -100,6 +101,10 @@ export function ClientCard({
                 <dd className="font-medium">{client.phone || "—"}</dd>
               </div>
               <div>
+                <dt className="text-xs text-muted-foreground">Email</dt>
+                <dd className="font-medium">{client.email || "—"}</dd>
+              </div>
+              <div>
                 <dt className="text-xs text-muted-foreground">Group</dt>
                 <dd className="font-medium">{client.groupName || "—"}</dd>
               </div>
@@ -158,6 +163,10 @@ export function ClientCard({
               <div className="space-y-1.5">
                 <Label htmlFor={`phone-${client.id}`}>Phone</Label>
                 <Input id={`phone-${client.id}`} name="phone" defaultValue={client.phone ?? ""} required />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor={`email-${client.id}`}>Email</Label>
+                <Input id={`email-${client.id}`} name="email" type="email" defaultValue={client.email ?? ""} />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor={`groupName-${client.id}`}>Group</Label>

@@ -2,8 +2,17 @@ import "server-only";
 import { getDb } from "./client";
 import { pendingChanges, clients, clientTransactions, users } from "./schema";
 import { eq, and, or, ne, asc, sql } from "drizzle-orm";
+import { listApprovalNotificationRecipients } from "./users";
+import { sendEmail } from "@/lib/email/send";
+import { approvalNeededEmail, APP_URL } from "@/lib/email/templates";
 
 export type PendingEntityType = "client" | "client_transaction" | "loan_agreement_application";
+
+const ENTITY_LABELS: Record<PendingEntityType, { kind: string; path: string }> = {
+  client: { kind: "client update", path: "/approvals" },
+  client_transaction: { kind: "transaction edit", path: "/approvals" },
+  loan_agreement_application: { kind: "loan application", path: "/agreements" },
+};
 
 export async function submitForApproval(params: {
   entityType: PendingEntityType;
@@ -23,7 +32,32 @@ export async function submitForApproval(params: {
       requestedBy: params.requestedBy,
     })
     .returning();
+
+  // Fire-and-forget — never block or fail the submission on a notification
+  // problem (sendEmail already swallows its own errors internally).
+  void notifyApprovalNeeded(row, params.requestedBy);
+
   return row;
+}
+
+async function notifyApprovalNeeded(row: typeof pendingChanges.$inferSelect, requestedBy: number) {
+  const db = getDb();
+  const [requester, recipients] = await Promise.all([
+    db.select({ fullName: users.fullName }).from(users).where(eq(users.id, requestedBy)).then((r) => r[0]),
+    listApprovalNotificationRecipients(row.branchId),
+  ]);
+  if (recipients.length === 0) return;
+
+  const { kind, path } = ENTITY_LABELS[row.entityType as PendingEntityType];
+  const submittedBy = requester?.fullName ?? "A staff member";
+  const link = `${APP_URL}${path}`;
+
+  await Promise.all(
+    recipients.map((r) => {
+      const email = approvalNeededEmail({ recipientName: r.fullName, kind, submittedBy, link });
+      return sendEmail({ to: r.email, subject: email.subject, html: email.html });
+    }),
+  );
 }
 
 export async function listPendingChanges(branchId: number | null) {

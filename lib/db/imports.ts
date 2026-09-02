@@ -7,6 +7,9 @@ import { createExpense } from "./expenses";
 import { saveTransactionRow, isEmptyRow } from "./transactions";
 import { createCashBookEntryBulk, recomputeRunningBalances } from "./cashBook";
 import type { ParsedClientRow, ParsedExpenseRow, ParsedTransactionRow, ParsedCashBookRow } from "@/lib/services/excelImport";
+import { listApprovalNotificationRecipients } from "./users";
+import { sendEmail } from "@/lib/email/send";
+import { importBatchCompletedEmail, APP_URL } from "@/lib/email/templates";
 
 export const IMPORT_TYPE_LABELS: Record<string, string> = {
   clients: "Clients",
@@ -151,9 +154,39 @@ export async function runClientImport(params: {
       .update(importBatches)
       .set({ status: "completed", successRows, errorRows, completedAt: new Date() })
       .where(eq(importBatches.id, batch.id));
+
+    void notifyImportBatchCompleted({
+      branchId: params.branchId,
+      batchId: batch.id,
+      totalRows: params.rows.length,
+      successCount: successRows,
+      errorCount: errorRows,
+    });
   }
 
   return { batchId: batch.id, successRows, errorRows, totalRows: params.rows.length };
+}
+
+async function notifyImportBatchCompleted(params: {
+  branchId: number;
+  batchId: number;
+  totalRows: number;
+  successCount: number;
+  errorCount: number;
+}) {
+  const recipients = await listApprovalNotificationRecipients(params.branchId);
+  await Promise.all(
+    recipients.map((r) => {
+      const email = importBatchCompletedEmail({
+        recipientName: r.fullName,
+        totalRows: params.totalRows,
+        successCount: params.successCount,
+        errorCount: params.errorCount,
+        link: `${APP_URL}/import/${params.batchId}`,
+      });
+      return sendEmail({ to: r.email, subject: email.subject, html: email.html });
+    }),
+  );
 }
 
 function toAmount(raw: string | undefined): number {

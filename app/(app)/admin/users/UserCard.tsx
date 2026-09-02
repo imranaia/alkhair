@@ -22,6 +22,7 @@ export type UserRow = {
   username: string;
   fullName: string;
   phone: string | null;
+  email: string | null;
   roleId: number;
   roleName: string;
   branchId: number | null;
@@ -161,6 +162,10 @@ export function UserCard({
                 <dd className="font-medium">{user.phone || "—"}</dd>
               </div>
               <div>
+                <dt className="text-xs text-muted-foreground">Email</dt>
+                <dd className="font-medium">{user.email || "—"}</dd>
+              </div>
+              <div>
                 <dt className="text-xs text-muted-foreground">Role</dt>
                 <dd className="font-medium">{user.roleName}</dd>
               </div>
@@ -218,6 +223,10 @@ export function UserCard({
               <div className="space-y-1.5">
                 <Label htmlFor={`phone-${user.id}`}>Phone (optional)</Label>
                 <Input id={`phone-${user.id}`} name="phone" defaultValue={user.phone ?? ""} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor={`email-${user.id}`}>Email (optional)</Label>
+                <Input id={`email-${user.id}`} name="email" type="email" defaultValue={user.email ?? ""} placeholder="For notifications" />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor={`roleId-${user.id}`}>Role</Label>

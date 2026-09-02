@@ -16,6 +16,7 @@ const profileSchema = z.object({
     .regex(/^[a-z0-9._-]+$/, "Letters, numbers, dots, dashes, underscores only"),
   fullName: z.string().trim().min(2).max(120),
   phone: z.string().trim().max(30).optional().or(z.literal("")),
+  email: z.string().trim().email("Enter a valid email.").max(150).optional().or(z.literal("")),
 });
 
 export type ProfileFormState = { error: string | null; success?: boolean };
@@ -27,6 +28,7 @@ export async function updateOwnProfileAction(_prevState: ProfileFormState, formD
     username: formData.get("username"),
     fullName: formData.get("fullName"),
     phone: formData.get("phone"),
+    email: formData.get("email"),
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
@@ -41,6 +43,7 @@ export async function updateOwnProfileAction(_prevState: ProfileFormState, formD
     username: parsed.data.username,
     fullName: parsed.data.fullName,
     phone: parsed.data.phone || undefined,
+    email: parsed.data.email || undefined,
     bumpTokenVersion: usernameChanged,
   });
 

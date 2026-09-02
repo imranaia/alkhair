@@ -72,6 +72,9 @@ export const users = pgTable("users", {
   passwordHash: text("password_hash").notNull(),
   fullName: varchar("full_name", { length: 120 }).notNull(),
   phone: varchar("phone", { length: 30 }),
+  // Notification recipient — nullable, since not every staff account has one
+  // on file yet. Never used for login (that's still username + password).
+  email: varchar("email", { length: 150 }),
   roleId: integer("role_id")
     .notNull()
     .references(() => roles.id),
@@ -168,6 +171,8 @@ export const clients = pgTable(
     groupName: varchar("group_name", { length: 80 }),
     fullName: varchar("full_name", { length: 150 }).notNull(),
     phone: varchar("phone", { length: 30 }),
+    // Notification recipient — optional; many clients won't have one.
+    email: varchar("email", { length: 150 }),
     address: text("address"),
     // A notable nearby building/feature — standard practice for locating an
     // address in areas without formal street numbering.

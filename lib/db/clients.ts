@@ -19,6 +19,7 @@ export async function listClients(params: { branchId: number | null; search?: st
       clientCode: clients.clientCode,
       fullName: clients.fullName,
       phone: clients.phone,
+      email: clients.email,
       address: clients.address,
       landmark: clients.landmark,
       groupName: clients.groupName,
@@ -46,6 +47,7 @@ export async function getClientById(id: number) {
       clientCode: clients.clientCode,
       fullName: clients.fullName,
       phone: clients.phone,
+      email: clients.email,
       address: clients.address,
       landmark: clients.landmark,
       groupName: clients.groupName,
@@ -171,6 +173,7 @@ export async function createClient(data: {
   branchId: number;
   fullName: string;
   phone?: string;
+  email?: string;
   address?: string;
   landmark?: string;
   groupName?: string;
@@ -205,6 +208,7 @@ export async function createClient(data: {
         branchId: data.branchId,
         fullName: data.fullName,
         phone: data.phone,
+        email: data.email,
         address: data.address,
         landmark: data.landmark,
         groupName: data.groupName,
@@ -252,6 +256,7 @@ export async function updateClient(
   data: {
     fullName: string;
     phone?: string;
+    email?: string;
     address?: string;
     landmark?: string;
     groupName?: string;
@@ -266,6 +271,7 @@ export async function updateClient(
     .set({
       fullName: data.fullName,
       phone: data.phone || null,
+      email: data.email || null,
       address: data.address || null,
       landmark: data.landmark || null,
       groupName: data.groupName || null,

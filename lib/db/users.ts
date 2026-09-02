@@ -1,7 +1,7 @@
 import "server-only";
 import { getDb } from "./client";
 import { users, roles, branches } from "./schema";
-import { eq, sql, and, inArray } from "drizzle-orm";
+import { eq, sql, and, or, inArray } from "drizzle-orm";
 import { hashPassword, generateTempPassword } from "@/lib/auth/password";
 
 export async function getUserByUsername(username: string) {
@@ -53,6 +53,7 @@ export async function getUserProfile(userId: number) {
       username: users.username,
       fullName: users.fullName,
       phone: users.phone,
+      email: users.email,
       roleName: roles.name,
       roleKey: roles.key,
       branchName: branches.name,
@@ -104,6 +105,24 @@ export async function listLoanCollectorsByBranch(branchIds: number[]) {
   return map;
 }
 
+// Who gets emailed when something needs an admin's attention for a branch —
+// that branch's own branch_admin(s), plus every super_admin (they can see
+// and act on anything). Only returns accounts with an email on file.
+export async function listApprovalNotificationRecipients(branchId: number) {
+  const db = getDb();
+  return db
+    .select({ email: users.email, fullName: users.fullName })
+    .from(users)
+    .innerJoin(roles, eq(roles.id, users.roleId))
+    .where(
+      and(
+        eq(users.isActive, true),
+        sql`${users.email} is not null`,
+        or(and(eq(roles.key, "branch_admin"), eq(users.branchId, branchId)), eq(roles.key, "super_admin")),
+      ),
+    ) as Promise<{ email: string; fullName: string }[]>;
+}
+
 export async function listUsersForBranch(branchId: number | null) {
   const db = getDb();
   const query = db
@@ -112,6 +131,7 @@ export async function listUsersForBranch(branchId: number | null) {
       username: users.username,
       fullName: users.fullName,
       phone: users.phone,
+      email: users.email,
       isActive: users.isActive,
       roleId: users.roleId,
       roleName: roles.name,
@@ -152,6 +172,7 @@ export async function createUser(data: {
   username: string;
   fullName: string;
   phone?: string;
+  email?: string;
   roleId: number;
   branchId: number | null;
   createdBy: number;
@@ -166,6 +187,7 @@ export async function createUser(data: {
       passwordHash,
       fullName: data.fullName,
       phone: data.phone,
+      email: data.email,
       roleId: data.roleId,
       branchId: data.branchId,
       createdBy: data.createdBy,
@@ -205,7 +227,15 @@ export async function resetUserPassword(userId: number, forSelf = false) {
 // on their next request (see requireActiveUser) and pick up the change.
 export async function updateUser(
   userId: number,
-  data: { username: string; fullName: string; phone?: string; roleId: number; branchId: number | null; bumpTokenVersion: boolean },
+  data: {
+    username: string;
+    fullName: string;
+    phone?: string;
+    email?: string;
+    roleId: number;
+    branchId: number | null;
+    bumpTokenVersion: boolean;
+  },
 ) {
   const db = getDb();
   const [user] = await db
@@ -214,6 +244,7 @@ export async function updateUser(
       username: data.username.toLowerCase(),
       fullName: data.fullName,
       phone: data.phone || null,
+      email: data.email || null,
       roleId: data.roleId,
       branchId: data.branchId,
       ...(data.bumpTokenVersion ? { tokenVersion: sql`${users.tokenVersion} + 1` } : {}),
@@ -230,7 +261,7 @@ export async function updateUser(
 // so the user isn't logged out mid-action.
 export async function updateOwnProfile(
   userId: number,
-  data: { username: string; fullName: string; phone?: string; bumpTokenVersion: boolean },
+  data: { username: string; fullName: string; phone?: string; email?: string; bumpTokenVersion: boolean },
 ) {
   const db = getDb();
   const [user] = await db
@@ -239,6 +270,7 @@ export async function updateOwnProfile(
       username: data.username.toLowerCase(),
       fullName: data.fullName,
       phone: data.phone || null,
+      email: data.email || null,
       ...(data.bumpTokenVersion ? { tokenVersion: sql`${users.tokenVersion} + 1` } : {}),
       updatedAt: new Date(),
     })
