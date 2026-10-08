@@ -46,10 +46,5 @@ next-env.d.ts
 *.xls
 *.xlsx
 
-.vercel
-.env*
-
 # local Claude Code session config
 .claude/
-
-.env*
