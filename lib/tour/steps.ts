@@ -28,7 +28,7 @@ export const TOUR_STEPS: TourStep[] = [
     id: "dashboard-duty",
     path: "/dashboard",
     target: "tour-dashboard-duty",
-    module: "dashboard",
+    module: "transactions",
     title: "Duty Roster",
     body: "Who's covering Branch Head, Receiving Officer, Supervision Officer and Disbursement Officer today. It's editable from the Transactions page.",
   },

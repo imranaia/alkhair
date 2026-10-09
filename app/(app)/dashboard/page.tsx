@@ -114,7 +114,8 @@ export default async function DashboardPage({
   // A super admin's KPIs default to every branch combined (branchId: null) —
   // same convention as /reports — with the option to drill into one branch
   // via the selector below. Everyone else is always scoped to their own.
-  const branchId = isSuperAdmin ? (branchIdParam ? Number(branchIdParam) : null) : user.branchId;
+  const parsedBranchId = branchIdParam ? Number(branchIdParam) : null;
+  const branchId = isSuperAdmin ? (Number.isInteger(parsedBranchId) ? parsedBranchId : null) : user.branchId;
 
   const [
     portfolio,
@@ -140,7 +141,7 @@ export default async function DashboardPage({
     canTransactions ? getRecentTransactions({ branchId, limit: 8 }) : Promise.resolve([]),
     canTransactions && branchId ? listDutyAssignments({ branchId, date: reportDate }) : Promise.resolve([]),
     canTransactions && branchId ? getTransactionTotalsForRange({ branchId, from: weekStart, to: reportDate }) : Promise.resolve(null),
-    isSuperAdmin ? getBranchBreakdown(reportDate) : Promise.resolve(null),
+    isSuperAdmin && branchId === null ? getBranchBreakdown(reportDate) : Promise.resolve(null),
     canApprovals ? listPendingChanges(isSuperAdmin ? null : user.branchId) : Promise.resolve([]),
     canAgreements ? listPendingLoanApplications(isSuperAdmin ? null : user.branchId) : Promise.resolve([]),
     isSuperAdmin ? listUsersForBranch(null) : Promise.resolve([]),
@@ -154,7 +155,7 @@ export default async function DashboardPage({
     Number(dailyExpenses);
 
   const dutyMap = new Map(dutyToday.map((d) => [d.dutyPost, d.userName]));
-  const currentBranchName = branchId ? branches.find((b) => b.id === branchId)?.name : null;
+  const currentBranchName = branchId ? branches.find((b) => b.id === branchId)?.name ?? `Branch #${branchId}` : null;
   const activeStaffCount = allStaff.filter((u) => u.roleKey !== "client" && u.isActive).length;
   const hasPendingWidget = canApprovals || canAgreements;
 
@@ -165,7 +166,7 @@ export default async function DashboardPage({
         <p className="text-sm text-muted-foreground">
           {format(new Date(), "EEEE, d MMMM yyyy")}
           {currentBranchName && ` — ${currentBranchName}`}
-          {isSuperAdmin && !currentBranchName && " — All branches"}
+          {isSuperAdmin && branchId === null && " — All branches"}
         </p>
       </GlassPanel>
 
@@ -255,14 +256,16 @@ export default async function DashboardPage({
               <StatTile icon={ArrowUpCircle} label="Principal Recovery" value={money(dailyTotals?.loanRecovery ?? 0)} />
               <StatTile icon={PiggyBank} label="New Savings" value={money(dailyTotals?.newSavings ?? 0)} />
             </div>
-            <div className="mt-4 border-t border-border pt-4">
-              <StatTile
-                icon={Wallet}
-                label="Net Cash Movement"
-                value={money(netCashMovement)}
-                emphasis={netCashMovement >= 0 ? "positive" : "negative"}
-              />
-            </div>
+            {canExpenses && (
+              <div className="mt-4 border-t border-border pt-4">
+                <StatTile
+                  icon={Wallet}
+                  label="Net Cash Movement"
+                  value={money(netCashMovement)}
+                  emphasis={netCashMovement >= 0 ? "positive" : "negative"}
+                />
+              </div>
+            )}
             {weekTotals && (
               <div className="mt-4 border-t border-border pt-4">
                 <h3 className="mb-2 text-xs font-medium text-muted-foreground">Week to date (since {weekStart})</h3>
