@@ -69,6 +69,14 @@ export async function resetPortalLoginAction(loginUserId: number, clientId: numb
   const user = await requireModule("clients", "edit");
   await assertClientInScope(clientId, user.branchId, user.roleKey);
 
+  // loginUserId arrives from the client separately from clientId — make sure
+  // it really is this client's portal login, or an in-scope clientId could be
+  // paired with any account's id (e.g. a super admin's) to reset its password.
+  const login = await getClientLogin(clientId);
+  if (!login || login.id !== loginUserId) {
+    return { error: "That login does not belong to this client." };
+  }
+
   const { user: resetUser, tempPassword } = await resetUserPassword(loginUserId);
 
   await logAction({

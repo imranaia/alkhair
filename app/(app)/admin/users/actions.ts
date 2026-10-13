@@ -204,8 +204,28 @@ export async function updateUserAction(_prevState: UserFormState, formData: Form
   return { error: null };
 }
 
+// Password resets and (de)activation act on another account's credentials,
+// so they get the same scoping as creation/editing: a non-super-admin may
+// only touch limited-scope staff in their own branch (or themselves). Without
+// this, anyone with `users.edit` could reset the super admin's password and
+// be shown the new one.
+async function assertCanManageUser(sessionUser: { userId: number; roleKey: string; branchId: number | null }, userId: number) {
+  const target = await getUserById(userId);
+  if (!target) return { error: "User not found." };
+  if (sessionUser.roleKey === "super_admin" || target.id === sessionUser.userId) return { error: null };
+  if (target.branchId === null || target.branchId !== sessionUser.branchId) {
+    return { error: "You can only manage users in your own branch." };
+  }
+  if (!BRANCH_ADMIN_ASSIGNABLE_ROLE_KEYS.includes(target.roleKey)) {
+    return { error: "You are not allowed to manage that user." };
+  }
+  return { error: null };
+}
+
 export async function resetPasswordAction(userId: number): Promise<UserFormState> {
   const sessionUser = await requireModule("users", "edit");
+  const scope = await assertCanManageUser(sessionUser, userId);
+  if (scope.error) return { error: scope.error };
   const isSelf = userId === sessionUser.userId;
   const { user, tempPassword } = await resetUserPassword(userId, isSelf);
   await logAction({
@@ -232,6 +252,8 @@ export async function resetPasswordAction(userId: number): Promise<UserFormState
 
 export async function toggleUserActiveAction(userId: number, isActive: boolean) {
   const sessionUser = await requireModule("users", "edit");
+  const scope = await assertCanManageUser(sessionUser, userId);
+  if (scope.error) throw new Error(scope.error);
   const user = await setUserActive(userId, isActive);
   await logAction({
     userId: sessionUser.userId,

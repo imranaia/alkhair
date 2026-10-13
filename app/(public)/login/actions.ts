@@ -15,7 +15,11 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
     .trim()
     .toLowerCase();
   const password = String(formData.get("password") ?? "");
-  const next = String(formData.get("next") ?? "/dashboard");
+  // Only follow same-site paths — a crafted /login?next=https://evil.example
+  // (or protocol-relative //evil.example, or /\evil.example) would otherwise
+  // send the user off-site right after a successful login.
+  const rawNext = String(formData.get("next") ?? "/dashboard");
+  const next = rawNext.startsWith("/") && !rawNext.startsWith("//") && !rawNext.startsWith("/\\") ? rawNext : "/dashboard";
 
   if (!username || !password) {
     return { error: GENERIC_ERROR };

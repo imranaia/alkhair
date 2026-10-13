@@ -127,6 +127,14 @@ export type ModuleAction = "view" | "create" | "edit" | "delete";
 // whether the page itself is accessible.
 export async function getModulePermission(moduleKey: string) {
   const user = await requireActiveUser();
+
+  // Super Admin always has complete control. Not read from role_permissions,
+  // so a missing or drifted row (e.g. a module added after seeding) can never
+  // lock the super admin out of part of the system.
+  if (user.roleKey === "super_admin") {
+    return { user, canView: true, canCreate: true, canEdit: true, canDelete: true };
+  }
+
   const db = getDb();
 
   const [perm] = await db
@@ -165,6 +173,16 @@ export async function requireModule(moduleKey: string, action: ModuleAction = "v
 
 export async function getSidebarModules(roleId: number) {
   const db = getDb();
+
+  // Same rule as getModulePermission: Super Admin sees every module.
+  const [role] = await db.select({ key: roles.key }).from(roles).where(eq(roles.id, roleId));
+  if (role?.key === "super_admin") {
+    return db
+      .select({ key: modules.key, label: modules.label, icon: modules.icon, routePrefix: modules.routePrefix })
+      .from(modules)
+      .orderBy(modules.sortOrder);
+  }
+
   return db
     .select({
       key: modules.key,
