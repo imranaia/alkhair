@@ -15,7 +15,7 @@ export function LoginForm({ next }: { next: string }) {
     <form action={formAction} className="space-y-5">
       <input type="hidden" name="next" value={next} />
       <div className="space-y-1.5">
-        <Label htmlFor="username">Username</Label>
+        <Label htmlFor="username">Username or email</Label>
         <Input id="username" name="username" autoComplete="username" required autoFocus />
       </div>
       <div className="space-y-1.5">

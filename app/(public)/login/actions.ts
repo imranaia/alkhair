@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { getUserByUsername, recordLoginSuccess, recordLoginFailure } from "@/lib/db/users";
+import { getUserForLogin, recordLoginSuccess, recordLoginFailure } from "@/lib/db/users";
 import { verifyPassword } from "@/lib/auth/password";
 import { getSession } from "@/lib/auth/session";
 import { logAction } from "@/lib/db/audit";
@@ -25,7 +25,8 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
     return { error: GENERIC_ERROR };
   }
 
-  const user = await getUserByUsername(username);
+  // The "username" field accepts either a username or the account's email.
+  const user = await getUserForLogin(username);
   if (!user) {
     return { error: GENERIC_ERROR };
   }

@@ -4,24 +4,45 @@ import { users, roles, branches } from "./schema";
 import { eq, sql, and, or, inArray } from "drizzle-orm";
 import { hashPassword, generateTempPassword } from "@/lib/auth/password";
 
+const loginFields = {
+  id: users.id,
+  username: users.username,
+  passwordHash: users.passwordHash,
+  fullName: users.fullName,
+  isActive: users.isActive,
+  mustChangePassword: users.mustChangePassword,
+  tokenVersion: users.tokenVersion,
+  failedLoginAttempts: users.failedLoginAttempts,
+  lockedUntil: users.lockedUntil,
+  roleId: users.roleId,
+  roleKey: roles.key,
+  branchId: users.branchId,
+  clientId: users.clientId,
+};
+
+// Login accepts either the username or the email on file. Anything with an
+// "@" is treated as an email (usernames can't contain one — see the username
+// regex in admin/users/actions.ts). Email isn't a unique column, so if two
+// accounts share an address it's ambiguous which one is meant — return null
+// and let the caller show the generic invalid-login error rather than guess.
+export async function getUserForLogin(identifier: string) {
+  const value = identifier.trim().toLowerCase();
+  if (!value.includes("@")) return getUserByUsername(value);
+
+  const db = getDb();
+  const rows = await db
+    .select(loginFields)
+    .from(users)
+    .innerJoin(roles, eq(roles.id, users.roleId))
+    .where(sql`lower(${users.email}) = ${value}`)
+    .limit(2);
+  return rows.length === 1 ? rows[0] : null;
+}
+
 export async function getUserByUsername(username: string) {
   const db = getDb();
   const [row] = await db
-    .select({
-      id: users.id,
-      username: users.username,
-      passwordHash: users.passwordHash,
-      fullName: users.fullName,
-      isActive: users.isActive,
-      mustChangePassword: users.mustChangePassword,
-      tokenVersion: users.tokenVersion,
-      failedLoginAttempts: users.failedLoginAttempts,
-      lockedUntil: users.lockedUntil,
-      roleId: users.roleId,
-      roleKey: roles.key,
-      branchId: users.branchId,
-      clientId: users.clientId,
-    })
+    .select(loginFields)
     .from(users)
     .innerJoin(roles, eq(roles.id, users.roleId))
     .where(eq(users.username, username.toLowerCase()));
